@@ -1,0 +1,147 @@
+{
+    "version": "1.0",
+    "optimization_mods": [
+        { "name": "Sodium", "value": "sodium" },
+        { "name": "Sodium Extra", "value": "sodium-extra" },
+        {
+            "name": "Reese's Sodium Options",
+            "value": "reeses-sodium-options"
+        },
+        {
+            "name": "Bad Optimizations",
+            "value": "badoptimizations"
+        },
+        { "name": "Packet Fixer", "value": "packet-fixer" },
+        {
+            "name": "ImmediatelyFast",
+            "value": "immediatelyfast"
+        },
+        { "name": "FerriteCore", "value": "ferrite-core" },
+        { "name": "Lithium", "value": "lithium" },
+        { "name": "Spark", "value": "spark" },
+        {
+            "name": "Very Manny Players (Fabric)",
+            "value": "vmp-fabric"
+        },
+        { "name": "Ixeris", "value": "ixeris" },
+        { "name": "Entity Culling", "value": "entityculling" },
+        { "name": "OptiGUI", "value": "optigui" },
+        {
+            "name": "ForceCloseWorldLoadingScreen",
+            "value": "forcecloseworldloadingscreen"
+        },
+        { "name": "Iris Shaders", "value": "iris" },
+        {
+            "name": "Language Reload",
+            "value": "language-reload"
+        },
+        { "name": "Krypton", "value": "krypton" }
+    ],
+    "pvp_mods": [
+        { "name": "Appleskin", "value": "appleskin" },
+        { "name": "Status Effect Timer", "value": "statuseffecttimer" },
+        { "name": "Uku's Armor HUD", "value": "ukus-armor-hud" },
+        { "name": "Centered Crosshair", "value": "centered-crosshair" },
+        { "name": "Shield Status", "value": "shield-statuses" },
+        { "name": "Shield Fixes", "value": "complete-shield-fixes" },
+        {
+            "name": "Crosshair Addons Public",
+            "value": "crosshair-addons-public"
+        },
+        {
+            "name": "Better Ping Display",
+            "value": "better-ping-display-fabric"
+        },
+        { "name": "Bactro Mod", "value": "bactromod" }
+    ],
+    "misc_mods": [
+        { "name": "Zoomify", "value": "zoomify" },
+        { "name": "Auto Sprint Fix", "value": "auto-sprint-fix" },
+        { "name": "Mouse Tweaks", "value": "mouse-tweaks" },
+        { "name": "No Chat Reports", "value": "no-chat-reports" },
+        { "name": "Bobby", "value": "bobby" },
+        { "name": "Cherished Worlds", "value": "cherished-worlds" },
+        {
+            "name": "No Resource Pack Warnings",
+            "value": "no-resource-pack-warnings"
+        },
+        { "name": "Sit", "value": "bl4cks-sit" }
+    ],
+    "building_mods": [
+        { "name": "Axiom", "value": "axiom" },
+        {
+            "name": "Accurate Block Placement",
+            "value": "accurate-block-placement-reborn"
+        },
+        { "name": "Worldedit", "value": "worldedit" },
+        { "name": "Worldedit CUI", "value": "worldedit-cui" },
+        { "name": "Litematica", "value": "litematica" },
+        { "name": "Freecam", "value": "freecam" },
+        { "name": "Vanilla Refresh", "value": "vanilla-refresh" }
+    ],
+    "visual_mods": [
+        { "name": "Not Enough Animations", "value": "not-enough-animations" },
+        { "name": "Gamma Utils", "value": "gamma-utils" },
+        { "name": "3D Skin Layers", "value": "3dskinlayers" },
+        { "name": "Subtle Effects", "value": "subtle-effects" },
+        { "name": "Visuality", "value": "visuality" },
+        { "name": "Blur+", "value": "blur-plus" },
+        { "name": "Visual Workbench", "value": "visual-workbench" },
+        { "name": "Chat Animation", "value": "chatanimation" },
+        { "name": "Smooth Scrolling", "value": "smooth-scroll" },
+        { "name": "Wavey Capes", "value": "wavey-capes" },
+        { "name": "Better Snow Coverage", "value": "better-snow-coverage" },
+        { "name": "Continuity", "value": "continuity" },
+        { "name": "Fresh Animations", "value": "fresh-animations" },
+        { "name": "Make Bubbles Pop", "value": "make_bubbles_pop" },
+        { "name": "Explosive Enhancement", "value": "explosive-enhancement" },
+        { "name": "Visual Jukebox", "value": "visual-jukebox" },
+        { "name": "Particle Rain", "value": "particle-rain" },
+        { "name": "Cool Rain", "value": "coolrain" },
+        { "name": "Cave Dust", "value": "cave-dust" },
+        { "name": "Drip Sounds", "value": "dripsounds" },
+        {
+            "name": "Sound Physics Remastered",
+            "value": "sound-physics-remastered"
+        },
+        { "name": "Presence Footsteps", "value": "presence-footsteps" }
+    ],
+    "interface_mods": [
+        { "name": "Jade", "value": "jade" },
+        { "name": "Controlling", "value": "controlling" },
+        { "name": "Shulker Box Tooltip", "value": "shulkerboxtooltip" },
+        { "name": "Chat Heads", "value": "chat-heads" },
+        { "name": "Mod Menu", "value": "modmenu" },
+        { "name": "Resourcify", "value": "resourcify" },
+        { "name": "Sprint Indicator", "value": "sprint-indicator" },
+        { "name": "Better F3", "value": "betterf3" },
+        { "name": "Better Statistics Screen", "value": "better-stats" }
+    ],
+    "library_mods": [
+        {
+            "name": "Fabric API",
+            "value": "fabric-api"
+        },
+        {
+            "name": "Placeholder API",
+            "value": "placeholder-api"
+        },
+        {
+            "name": "Walksylib",
+            "value": "walksylib"
+        },
+        { "name": "Cloth Config API", "value": "cloth-config" },
+        { "name": "Ukulib", "value": "ukulib" },
+        { "name": "Searchables", "value": "searchables" },
+        { "name": "Polymer", "value": "polymer" },
+        { "name": "Fabric Language Kotlin", "value": "fabric-language-kotlin" },
+        { "name": "Yet Another Config Lib", "value": "yacl" },
+        { "name": "Puzzles Lib", "value": "puzzles-lib" },
+        { "name": "Forge Config API Port", "value": "forge-config-api-port" },
+        { "name": "MaLiLib", "value": "malilib" },
+        { "name": "Fzzy Config", "value": "fzzy-config" },
+        { "name": "Midnight Lib", "value": "midnightlib" },
+        { "name": "TCD Commons API", "value": "tcdcommons" },
+        { "name": "Architectury API", "value": "architectury-api" }
+    ]
+}
