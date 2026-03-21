@@ -1,0 +1,13 @@
+[project]
+name = "mc-mods-downloader"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "mypy>=1.19.1",
+    "questionary>=2.1.1",
+    "requests>=2.32.5",
+    "rich>=14.3.3",
+    "types-requests>=2.32.4.20260107",
+]
