@@ -6,6 +6,8 @@
             "name": "Reese's Sodium Options",
             "value": "reeses-sodium-options"
         },
+        { "name": "Embeddium (Forge)", "value": "embeddium" },
+        { "name": "Debugify", "value": "debugify" },
         {
             "name": "Bad Optimizations",
             "value": "badoptimizations"
@@ -16,7 +18,10 @@
             "value": "immediatelyfast"
         },
         { "name": "FerriteCore", "value": "ferrite-core" },
+        { "name": "ModernFix", "value": "modernfix" },
         { "name": "Lithium", "value": "lithium" },
+        { "name": "Noisium Forked", "value": "noisiumforked" },
+        { "name": "Clumps", "value": "clumps" },
         { "name": "Spark", "value": "spark" },
         {
             "name": "Very Manny Players (Fabric)",
@@ -34,7 +39,8 @@
             "name": "Language Reload",
             "value": "language-reload"
         },
-        { "name": "Krypton", "value": "krypton" }
+        { "name": "Krypton", "value": "krypton" },
+        { "name": "More Culling", "value": "moreculling" }
     ],
     "pvp_mods": [
         { "name": "Appleskin", "value": "appleskin" },
@@ -42,7 +48,6 @@
         { "name": "Uku's Armor HUD", "value": "ukus-armor-hud" },
         { "name": "Centered Crosshair", "value": "centered-crosshair" },
         { "name": "Shield Status", "value": "shield-statuses" },
-        { "name": "Shield Fixes", "value": "complete-shield-fixes" },
         {
             "name": "Crosshair Addons Public",
             "value": "crosshair-addons-public"
@@ -54,17 +59,14 @@
         { "name": "Bactro Mod", "value": "bactromod" }
     ],
     "misc_mods": [
-        { "name": "Zoomify", "value": "zoomify" },
-        { "name": "Auto Sprint Fix", "value": "auto-sprint-fix" },
-        { "name": "Mouse Tweaks", "value": "mouse-tweaks" },
-        { "name": "No Chat Reports", "value": "no-chat-reports" },
-        { "name": "Bobby", "value": "bobby" },
         { "name": "Cherished Worlds", "value": "cherished-worlds" },
         {
             "name": "No Resource Pack Warnings",
             "value": "no-resource-pack-warnings"
         },
-        { "name": "Sit", "value": "bl4cks-sit" }
+        { "name": "Sit", "value": "bl4cks-sit" },
+        { "name": "Fancy Menu", "value": "fancymenu" },
+        { "name": "Your Options Shall Be Respected", "value": "yosbr" }
     ],
     "building_mods": [
         { "name": "Axiom", "value": "axiom" },
@@ -75,8 +77,7 @@
         { "name": "Worldedit", "value": "worldedit" },
         { "name": "Worldedit CUI", "value": "worldedit-cui" },
         { "name": "Litematica", "value": "litematica" },
-        { "name": "Freecam", "value": "freecam" },
-        { "name": "Vanilla Refresh", "value": "vanilla-refresh" }
+        { "name": "Freecam", "value": "freecam" }
     ],
     "visual_mods": [
         { "name": "Not Enough Animations", "value": "not-enough-animations" },
@@ -85,36 +86,78 @@
         { "name": "Subtle Effects", "value": "subtle-effects" },
         { "name": "Visuality", "value": "visuality" },
         { "name": "Blur+", "value": "blur-plus" },
+        { "name": "Dynamic Lights", "value": "lambdynamiclights" },
         { "name": "Visual Workbench", "value": "visual-workbench" },
         { "name": "Chat Animation", "value": "chatanimation" },
         { "name": "Smooth Scrolling", "value": "smooth-scroll" },
         { "name": "Wavey Capes", "value": "wavey-capes" },
+        { "name": "Model Gap Fix", "value": "modelfix" },
         { "name": "Better Snow Coverage", "value": "better-snow-coverage" },
         { "name": "Continuity", "value": "continuity" },
         { "name": "Fresh Animations", "value": "fresh-animations" },
         { "name": "Make Bubbles Pop", "value": "make_bubbles_pop" },
         { "name": "Explosive Enhancement", "value": "explosive-enhancement" },
+        { "name": "Particular", "value": "particular" },
         { "name": "Visual Jukebox", "value": "visual-jukebox" },
         { "name": "Particle Rain", "value": "particle-rain" },
-        { "name": "Cool Rain", "value": "coolrain" },
+        { "name": "Effective", "value": "effective" },
         { "name": "Cave Dust", "value": "cave-dust" },
-        { "name": "Drip Sounds", "value": "dripsounds" },
+        { "name": "Tiny Item Animations", "value": "tiny-item-animations" },
+        { "name": "Falling Leaves", "value": "fallingleaves" },
+        { "name": "Wakes", "value": "wakes" }
+    ],
+    "hud_mods": [
+        { "name": "Jade", "value": "jade" },
+        { "name": "Better F3", "value": "betterf3" },
+        { "name": "Better Statistics Screen", "value": "better-stats" },
+        { "name": "EMI", "value": "emi" },
+        { "name": "Sprint Indicator", "value": "sprint-indicator" },
+        { "name": "Xaero's Minimap", "value": "xaeros-minimap" },
+        { "name": "wWaypoints", "value": "wwaypoints" },
+        { "name": "Shulker Box Tooltip", "value": "shulkerboxtooltip" },
+        { "name": "Auto HUD", "value": "autohud" },
+        { "name": "Better Advancements", "value": "better-advancements" }
+    ],
+    "auditory_mods": [
         {
             "name": "Sound Physics Remastered",
             "value": "sound-physics-remastered"
         },
-        { "name": "Presence Footsteps", "value": "presence-footsteps" }
+        { "name": "Drip Sounds", "value": "dripsounds" },
+        { "name": "Ambient Sounds", "value": "ambientsounds" },
+        { "name": "Presence Footsteps", "value": "presence-footsteps" },
+        { "name": "Sounds", "value": "sound" },
+        { "name": "Cool Rain", "value": "coolrain" }
     ],
-    "interface_mods": [
-        { "name": "Jade", "value": "jade" },
-        { "name": "Controlling", "value": "controlling" },
-        { "name": "Shulker Box Tooltip", "value": "shulkerboxtooltip" },
-        { "name": "Chat Heads", "value": "chat-heads" },
+    "social_mods": [
+        { "name": "No Chat Reports", "value": "no-chat-reports" },
+        { "name": "Simple Voice Chat", "value": "simple-voice-chat" },
+        { "name": "Emoji Type", "value": "emoji-type" }
+    ],
+    "qol_mods": [
         { "name": "Mod Menu", "value": "modmenu" },
+        { "name": "Zoomify", "value": "zoomify" },
+        { "name": "Vanilla Refresh", "value": "vanilla-refresh" },
+        { "name": "Controlling", "value": "controlling" },
+        { "name": "Chat Heads", "value": "chat-heads" },
+        { "name": "More Chat History", "value": "morechathistory" },
         { "name": "Resourcify", "value": "resourcify" },
-        { "name": "Sprint Indicator", "value": "sprint-indicator" },
-        { "name": "Better F3", "value": "betterf3" },
-        { "name": "Better Statistics Screen", "value": "better-stats" }
+        { "name": "Auto Sprint Fix", "value": "auto-sprint-fix" },
+        { "name": "Mouse Tweaks", "value": "mouse-tweaks" },
+        { "name": "Bobby (Best Multiplayer)", "value": "bobby" },
+
+        {
+            "name": "Distant Horizons (Best Singleplayer)",
+            "value": "distanthorizons"
+        },
+        {
+            "name": "Inventory Move",
+            "value": "invmove"
+        },
+        {
+            "name": "Right Click Harvest",
+            "value": "rightclickharvest"
+        }
     ],
     "library_mods": [
         {
@@ -141,6 +184,11 @@
         { "name": "Fzzy Config", "value": "fzzy-config" },
         { "name": "Midnight Lib", "value": "midnightlib" },
         { "name": "TCD Commons API", "value": "tcdcommons" },
-        { "name": "Architectury API", "value": "architectury-api" }
+        { "name": "Architectury API", "value": "architectury-api" },
+        { "name": "Collective", "value": "collective" },
+        { "name": "Geckolib", "value": "geckolib" },
+        { "name": "Balm", "value": "balm" },
+        { "name": "CreativeCore", "value": "creativecore" },
+        { "name": "CIT Resewn", "value": "cit-resewn" }
     ]
 }
