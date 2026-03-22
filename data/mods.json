@@ -189,6 +189,10 @@
         { "name": "Geckolib", "value": "geckolib" },
         { "name": "Balm", "value": "balm" },
         { "name": "CreativeCore", "value": "creativecore" },
-        { "name": "CIT Resewn", "value": "cit-resewn" }
+        { "name": "CIT Resewn", "value": "cit-resewn" },
+        { "name": "JamLib", "value": "jamlib" },
+        { "name": "Melody", "value": "melody" },
+        { "name": "Konkrete", "value": "konkrete" },
+        { "name": "mru", "value": "mru" }
     ]
 }
