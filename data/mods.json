@@ -1,5 +1,4 @@
 {
-    "version": "1.0",
     "optimization_mods": [
         { "name": "Sodium", "value": "sodium" },
         { "name": "Sodium Extra", "value": "sodium-extra" },
