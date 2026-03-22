@@ -1,30 +1,183 @@
 import requests
 from glob import glob
 import os
-import sys
+from sys import exit
 import questionary
 import json
 from rich.theme import Theme
 from rich.console import Console
 import builder
 from pathlib import Path
+from typing import Any
 
+# global variables initialization
+# things so the print() works with rich
 custom_theme = Theme({"error": "bold red", "success": "green", "warning": "yellow"})
 console = Console(theme=custom_theme, highlight=False)
 print = console.print
 
+# filepaths
 appdata_filepath = appdata_filepath = (
     Path(os.getenv("APPDATA") or (Path.home() / "AppData" / "Roaming"))
 ) / "mc-mods-downloader"
-
 mods_filepath = appdata_filepath / "mods.json"
 idslugmap_filepath = appdata_filepath / "idslugmap.json"
 config_filepath = appdata_filepath / "config.json"
 
+# some variables for the thing to work
 visited_mod_ids: set[str] = set()
+full_modlist: list[dict[str, str]] = []
+failed_mods: list[str] = []
+dependency_mods_downloaded: list[str] = []
+
+
+def configure_settings(config: dict[str, Any]):
+    def change_minecraft_version() -> str:
+        api_url = "https://api.modrinth.com/v2/tag/game_version"
+        data = requests.get(api_url).json()  # pretty much guaranteed to be 200
+        minecraft_versions = [
+            version["version"]
+            for version in data
+            if version["version_type"] == "release"
+        ]
+
+        selected_version = questionary.autocomplete(
+            "Type your minecraft version (e.g. 1.21): ",
+            choices=minecraft_versions,
+            default=minecraft_versions[0],  # latest version
+        ).ask()
+        return selected_version
+
+    def change_mod_loader() -> str:
+        selected_mod_loader = questionary.select(
+            "Choose your mod loader:", choices=("Fabric", "NeoForge", "Forge", "Quilt")
+        ).ask()
+        return selected_mod_loader
+
+    def select_valid_versions() -> list[str]:
+        selected_valid_versions = questionary.checkbox(
+            "Which mod versions do you allow?",
+            choices=(
+                questionary.Choice(
+                    title="Release (Stable)",
+                    value="release",
+                    checked="release" in config.get("valid_versions", []),
+                ),
+                questionary.Choice(
+                    title="Beta (Testing)",
+                    value="beta",
+                    checked="beta" in config.get("valid_versions", []),
+                ),
+                questionary.Choice(
+                    title="Alpha (Early Development, NOT RECOMMENDED)",
+                    value="alpha",
+                    checked="alpha" in config.get("valid_versions", []),
+                ),
+            ),
+            default="release",
+        ).ask()
+        return selected_valid_versions
+
+    def change_default_path() -> str:
+        print(
+            "Note that changing this setting will remove the pathing prompt when downloading",
+            style="warning",
+        )
+        print(
+            "Tip: You can copy and paste the path from the file explorer search bar",
+            style="warning",
+        )
+        selected_folder_path = questionary.path(
+            "Change Default Mods Path: (press tab)", default=""
+        ).ask()
+        return selected_folder_path
+
+    def change_behaviour_settings() -> None:
+        while True:
+            behaviour_settings_chioces = (
+                questionary.Choice(
+                    title=f"Skip .jar files Deletion Confirmation [{config['auto_clear_jars']}]",
+                    value="auto_clear_jars",
+                ),
+                questionary.Choice(
+                    title=f"Show Detailed Logs [{config['show_deatiled_logs']}]",
+                    value="show_deatiled_logs",
+                ),
+                questionary.Choice(title="Go Back", value="back"),
+            )
+
+            behaviour_settings_selection = questionary.select(
+                "Behaviour Settings",
+                choices=behaviour_settings_chioces,
+                default=None,
+            ).ask()
+            if (
+                behaviour_settings_selection == "back"
+                or behaviour_settings_selection is None
+            ):
+                break
+            else:
+                config[behaviour_settings_selection] = not config[
+                    behaviour_settings_selection
+                ]
+
+    def save_config() -> None:
+        with open(config_filepath, "w") as file:
+            json.dump(config, file, indent=4)
+        print("Successfully saved settings", style="success")
+
+    def main() -> None:
+        nonlocal config
+        while True:
+            choice = questionary.select(
+                "Settings Menu",
+                choices=(
+                    "Change Minecraft Version",
+                    "Change Mod Loader",
+                    "Select Valid Versions",
+                    "Set Default Folder Path",
+                    "Behaviour Settings",
+                    "Reset Settings to Default",
+                    "Exit and Save",
+                    "Cancel",
+                ),
+            ).ask()
+            match choice:
+                case "Change Minecraft Version":
+                    config["version"] = change_minecraft_version()
+                case "Change Mod Loader":
+                    config["mod_loader"] = change_mod_loader()
+                case "Select Valid Versions":
+                    config["valid_versions"] = select_valid_versions()
+                case "Set Default Folder Path":
+                    config["mods_directory"] = change_default_path()
+                case "Behaviour Settings":
+                    change_behaviour_settings()  # this will change it inside
+                case "Reset Settings to Default":
+                    config = {
+                        "version": "1.21.11",
+                        "mod_loader": "fabric",
+                        "valid_versions": ["release"],
+                        "mods_directory": "",
+                        "auto_clear_jars": False,
+                        "show_deatiled_logs": False,
+                    }
+                    # yes i did just copy and paste the entire default config
+                case "Exit and Save":
+                    save_config()
+                    break
+
+                    # so the app can use it immediately without opening the file again
+                case "Cancel":
+                    break
+        return
+
+    main()
+    return config  # so the app can use them immediately without reading the file again
 
 
 def choose_mods() -> list:
+    global modpack_config
     initial_modlist: list[str] = []
     with open(mods_filepath) as file:
         json_modlist_data = json.load(file)
@@ -36,6 +189,7 @@ def choose_mods() -> list:
         "Building": "building_mods",
         "Visuals & Aesthetics": "visual_mods",
         "Interfaces & Utility": "interface_mods",
+        "Configure Settings": "settings",
         "Finish & Download": "exit and save",
         "Clear Modlist": "clear",
         "Exit & Cancel": "cancel",
@@ -49,11 +203,14 @@ def choose_mods() -> list:
 
         if json_key == "exit and save":
             return initial_modlist
+        elif json_key == "settings":
+            modpack_config = configure_settings(modpack_config)
+            continue
         elif json_key == "clear":
             initial_modlist = []
             continue
         elif json_key == "cancel":
-            sys.exit(0)
+            exit(0)
 
         mods_in_category = json_modlist_data.get(json_key, [])
 
@@ -168,7 +325,7 @@ def get_mods(slugorid: str, is_dependency=False) -> None:
         dependency_mods_downloaded.append(slug)
     # it is a dependency, visual jukebox forgot to add the polymer in their dependencies
     if slug == "visual-jukebox":
-        get_mods("polymer")
+        get_mods(slug_to_id("polymer"), is_dependency=True)
     dependencies = [
         dependency
         for dependency in latest_version.get("dependencies", [])
@@ -201,19 +358,79 @@ def clear_jar_files(directory_path: str) -> None:
 
 
 def download_mods(modlist: list[dict[str, str]]) -> None:
-    modpack_name = modpack_config.get("name", "Default")
-    folder_path = (
-        rf"C:\Users\darre\AppData\Roaming\.minecraft\modpacks\{modpack_name}\mods"
-    )
-    clear_folder = questionary.confirm(
-        "Should we delete all .jar files in the minecraft mods folder path to remove duplicates? (RECOMMENDED)"
-    ).ask()
-    if clear_folder:
+    def get_folder_path() -> str:
+        folder_path = (
+            Path(os.getenv("APPDATA", str(Path.home() / "AppData" / "Roaming")))
+            / ".minecraft"
+            / "modpacks"
+        )
+
+        if not folder_path.exists():  #
+            # not really a warning but i think yellow fits here so
+            print(
+                "Tip: You can copy and paste the path from the file explorer search bar",
+                style="warning",
+            )
+            folder_path = questionary.path(
+                f"Modpack default path ({folder_path}) not used, please manually enter a path where mods will be downloaded:",
+            ).ask()
+        else:
+            directories = [f.name for f in folder_path.iterdir() if f.is_dir()]
+            if not directories:
+                folder_path = (
+                    folder_path
+                    / questionary.text(
+                        "No modpacks found, please create a name to call your new modpack:",
+                        default="Default",
+                    ).ask()
+                    / "mods"
+                )
+                os.makedirs(folder_path)
+            else:
+                folder_path = (
+                    folder_path
+                    / questionary.select(
+                        "Which modpack do you want your mods installed?",
+                        choices=directories,
+                    ).ask()
+                    / "mods"
+                )
+        confirm_folderpath = questionary.confirm(
+            f"Is ({folder_path}) the correct filepath?"
+        ).ask()
+        if not confirm_folderpath:
+            print(
+                "you know what dude just type it in at this point then", style="error"
+            )
+            print(
+                "Tip: You can copy and paste the path from the file explorer search bar",
+                style="warning",
+            )
+            folder_path = questionary.path(
+                "Folderpath to download the mods: (press tab)",
+            ).ask()
+        os.makedirs(folder_path, exist_ok=True)
+        return folder_path
+
+    # getting folder path for downloading
+    if modpack_config.get("mods_directory"):
+        folder_path = modpack_config["mods_directory"]
+    else:
+        folder_path = get_folder_path()
+
+    # clear files first before downloading or not
+    if modpack_config.get("auto_clear_jars"):
         clear_jar_files(folder_path)
-        print("Everything cleared.", style="success")
+    else:
+        clear_folder = questionary.confirm(
+            "Should we delete all .jar files in the minecraft mods folder path to remove duplicates? (RECOMMENDED)"
+        ).ask()
+        if clear_folder:
+            clear_jar_files(folder_path)
+            print("Everything cleared.", style="success")
+
     for target_mod in modlist:
         download_path = os.path.join(folder_path, target_mod["filename"])
-
         url = target_mod.get("url")
         if not url:
             print(f"{target_mod} has no url!")
@@ -234,18 +451,14 @@ def download_mods(modlist: list[dict[str, str]]) -> None:
 
 
 if __name__ == "__main__":
+    # program initialization (.json files, declaring global variables, etc)
+    builder.main()
     with open(config_filepath) as file:
-        modpack_config = json.load(file)
-    full_modlist: list[dict[str, str]] = []
-    failed_mods: list[str] = []
-    dependency_mods_downloaded: list[str] = []
+        modpack_config: dict[str, Any] = json.load(file)
     with open(idslugmap_filepath) as file:
         id_to_slug_map: dict[str, str] = json.load(file)
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "cli":
-            initial_modlist = sys.argv[2:]
-    else:
-        initial_modlist = choose_mods()
+    # now the program starts
+    initial_modlist = choose_mods()
     for mod in initial_modlist:
         get_mods(mod)  # automatically appends to full_modlist
     download_mods(full_modlist)
@@ -256,4 +469,4 @@ if __name__ == "__main__":
         print(
             f"{len(failed_mods)} mods failed to download: {failed_mods}", style="error"
         )
-    print("")
+    input("Press Enter to exit.")
