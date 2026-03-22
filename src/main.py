@@ -192,7 +192,6 @@ def choose_mods() -> list[str]:
     initial_modlist: list[str] = []
     with open(mods_filepath) as file:
         json_modlist_data = json.load(file)
-    print(json_modlist_data)
 
     category_map = {
         "Optimization & Performance": "optimization_mods",
