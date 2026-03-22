@@ -40,7 +40,7 @@ def configure_settings(config: dict[str, Any]):
             for version in data
             if version["version_type"] == "release"
         ]
-
+        print("Tip: Press tab to enable autocomplete", style="warning")
         selected_version = questionary.autocomplete(
             "Type your minecraft version (e.g. 1.21): ",
             choices=minecraft_versions,
@@ -55,6 +55,11 @@ def configure_settings(config: dict[str, Any]):
         return selected_mod_loader
 
     def select_valid_versions() -> list[str]:
+        """select which versions of mods are allowed (alpha, beta, release/stable)
+
+        Returns:
+            list[str]: selected versions
+        """
         selected_valid_versions = questionary.checkbox(
             "Which mod versions do you allow?",
             choices=(
@@ -152,7 +157,7 @@ def configure_settings(config: dict[str, Any]):
                 case "Set Default Folder Path":
                     config["mods_directory"] = change_default_path()
                 case "Behaviour Settings":
-                    change_behaviour_settings()  # this will change it inside
+                    change_behaviour_settings()  # config changes inside function so no return
                 case "Reset Settings to Default":
                     config = {
                         "version": "1.21.11",
@@ -167,7 +172,6 @@ def configure_settings(config: dict[str, Any]):
                     save_config()
                     break
 
-                    # so the app can use it immediately without opening the file again
                 case "Cancel":
                     break
         return
@@ -176,19 +180,30 @@ def configure_settings(config: dict[str, Any]):
     return config  # so the app can use them immediately without reading the file again
 
 
-def choose_mods() -> list:
+def choose_mods() -> list[str]:
+    """displays a questionary type ui to choose minecraft mods based off whats in mods.json, also where you configure settings
+
+    Returns:
+        list[str]: the initial modlist which stores the mods slug
+        (needed for putting it through the modrinth api later in get_mods(),
+        it is not the final list used in download_mods(),
+    """
     global modpack_config
     initial_modlist: list[str] = []
     with open(mods_filepath) as file:
         json_modlist_data = json.load(file)
+    print(json_modlist_data)
 
     category_map = {
         "Optimization & Performance": "optimization_mods",
         "PVP & Combat": "pvp_mods",
-        "Miscellaneous": "misc_mods",
-        "Building": "building_mods",
+        "HUD & Info": "hud_mods",
+        "QOL Mods": "qol_mods",
         "Visuals & Aesthetics": "visual_mods",
-        "Interfaces & Utility": "interface_mods",
+        "Audio & Ambience": "auditory_mods",
+        "Building": "building_mods",
+        "Miscellaneous": "misc_mods",
+        "Multiplayer & Social": "social_mods",
         "Configure Settings": "settings",
         "Finish & Download": "exit and save",
         "Clear Modlist": "clear",
@@ -228,6 +243,8 @@ def choose_mods() -> list:
         ).ask()
 
         # dont know how this works but it does, dont touch it
+        # it only stores the value of the mod, and puts it in the initial modlist,
+        # removes the name property and checked property
 
         initial_modlist = [
             mod
@@ -239,6 +256,16 @@ def choose_mods() -> list:
 
 
 def slug_to_id(target_slug: str) -> str:
+    """converts the target slug into the id (id from modrinth)
+    this is mainly for consistency purposes as slugs can change while ids cant
+    if it wasnt obvious enough this is by using idslugmap.json
+
+    Args:
+        target_slug (str): target slug
+
+    Returns:
+        str: the id attached to the slug
+    """
     id = next(
         (id for id, slug in id_to_slug_map.items() if slug == target_slug),
     )
@@ -248,6 +275,19 @@ def slug_to_id(target_slug: str) -> str:
 
 
 def get_mods(slugorid: str, is_dependency=False) -> None:
+    """gets the mods from initial modlist, puts them in modrinth api to get the mods download url and filename
+    for the download section. also checks the mod for any required dependencies and downloads them recursively
+    dependencies installed have is_dependency set to True for obvious reasons
+
+    Args:
+        slugorid (str): the slug/id of the mod, immediately turned into seperate slug and id variables
+        where ids are used for the api requests and slugs for debugging and printing out console stuff
+
+        is_dependency (bool, optional): if the mod is a dependency (installed because the other mods need it)
+        we need it because dependencies are using ids for slugorid, and regular mods are using the slug,
+        so we can make the id and slug different variables
+        Defaults to False.
+    """
     loaders = modpack_config.get("mod_loader", "fabric")
     version = modpack_config["version"]
     valid_versions = modpack_config.get("valid_versions", "release")
@@ -349,6 +389,12 @@ def get_mods(slugorid: str, is_dependency=False) -> None:
 
 
 def clear_jar_files(directory_path: str) -> None:
+    """clears .jar files in the mod directory where they download mods
+    this is to prevent duplicates and weird glitches and stuff and outdated mods
+
+    Args:
+        directory_path (str): the directory path where the mods are installed
+    """
     files = glob(os.path.join(directory_path, "*.jar"))
     for file in files:
         try:
@@ -358,7 +404,17 @@ def clear_jar_files(directory_path: str) -> None:
 
 
 def download_mods(modlist: list[dict[str, str]]) -> None:
+    """downloads the mods in the modlist using the api
+    Args:
+        modlist (list[dict[str, str]]): the modlist in which the function uses to download the mods
+    """
+
     def get_folder_path() -> str:
+        """finds the folder path of the modpack
+
+        Returns:
+            str: folder path
+        """
         folder_path = (
             Path(os.getenv("APPDATA", str(Path.home() / "AppData" / "Roaming")))
             / ".minecraft"
@@ -395,13 +451,12 @@ def download_mods(modlist: list[dict[str, str]]) -> None:
                     ).ask()
                     / "mods"
                 )
+
         confirm_folderpath = questionary.confirm(
             f"Is ({folder_path}) the correct filepath?"
         ).ask()
         if not confirm_folderpath:
-            print(
-                "you know what dude just type it in at this point then", style="error"
-            )
+            print("just type it in at this point then", style="error")
             print(
                 "Tip: You can copy and paste the path from the file explorer search bar",
                 style="warning",

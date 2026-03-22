@@ -12,7 +12,7 @@ print = console.print
 
 
 def main():
-    # where program stores json files
+    # appdata_filepath is where program stores json files
     appdata_filepath = Path(getenv("APPDATA")) / "mc-mods-downloader"
     makedirs(appdata_filepath, exist_ok=True)
 
@@ -21,14 +21,14 @@ def main():
     config_filepath = appdata_filepath / "config.json"
 
     def get_mods_json() -> bool:
-        """grabs the mods.json from my github repo, and puts it in mods.json (locally on appdata)
+        """grabs the mods.json from my github repo, and puts it in mods.json (locally on appdata/roaming)
 
         Raises:
-            requests.exceptions.HTTPError: if response.status_code is not 304 (when etag matches aka not modified),
-            this can either mean they have no internet connection or the servers are down
+            requests.exceptions.HTTPError: If response.status_code is not 200 (success) or 304 (mods.json using latest version),
+            this is either a server error (github issues) or a cilent error (internet issues)
 
         Returns:
-            bool: it determines whether the slugsidmap.json gets updated or not
+            bool: it determines whether the slugsidmap.json gets should updated or not (aka if slugidmap() gets called or not)
         """
         etag_filepath = appdata_filepath / "mods.etag"
         mods_url = "https://raw.githubusercontent.com/nerrader/nerraders-mc-mod-downloader/refs/heads/main/data/mods.json"
@@ -55,7 +55,7 @@ def main():
 
     def get_slugslist() -> list[str]:  # only slugs, no ids
         """Summary:
-        Gets the list of slugs from the mods.json
+        Gets the list of slugs (value) from the mods.json
 
         Returns:
             list[str]: The list of slugs
@@ -74,12 +74,15 @@ def main():
     def modify_slugsmap(slugslist: list[str]) -> None:
         """Summary:
         From the list of slugs given, use the modrinth API to find the IDs for each slug,
-        then put it in a dictionary (id: slug), then saves it to a file called idslugmap.json
+        then put it in a dictionary (id: slug), then saves it to a file called idslugmap.json (locally in appdata)
+
+        idslugmap.json will be used to convert slugs into ids and vice versa in main.py
 
         Args:
-            slugslist (list[str]): The list of slugs that will be needed to find the IDs of each
+            slugslist (list[str]): The list of slugs that will be needed to find the IDs of each, usually from
+            getslugslist()
         """
-        idslugmap = {}
+        idslugmap: dict = {}
         api_url = "https://api.modrinth.com/v2/projects"
         api_params = {"ids": json.dumps(slugslist)}
         response = requests.get(api_url, params=api_params)
