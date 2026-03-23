@@ -160,39 +160,30 @@
         }
     ],
     "library_mods": [
-        {
-            "name": "Fabric API",
-            "value": "fabric-api"
-        },
-        {
-            "name": "Placeholder API",
-            "value": "placeholder-api"
-        },
-        {
-            "name": "Walksylib",
-            "value": "walksylib"
-        },
-        { "name": "Cloth Config API", "value": "cloth-config" },
-        { "name": "Ukulib", "value": "ukulib" },
-        { "name": "Searchables", "value": "searchables" },
-        { "name": "Polymer", "value": "polymer" },
-        { "name": "Fabric Language Kotlin", "value": "fabric-language-kotlin" },
-        { "name": "Yet Another Config Lib", "value": "yacl" },
-        { "name": "Puzzles Lib", "value": "puzzles-lib" },
-        { "name": "Forge Config API Port", "value": "forge-config-api-port" },
-        { "name": "MaLiLib", "value": "malilib" },
-        { "name": "Fzzy Config", "value": "fzzy-config" },
-        { "name": "Midnight Lib", "value": "midnightlib" },
-        { "name": "TCD Commons API", "value": "tcdcommons" },
-        { "name": "Architectury API", "value": "architectury-api" },
-        { "name": "Collective", "value": "collective" },
-        { "name": "Geckolib", "value": "geckolib" },
-        { "name": "Balm", "value": "balm" },
-        { "name": "CreativeCore", "value": "creativecore" },
-        { "name": "CIT Resewn", "value": "cit-resewn" },
-        { "name": "JamLib", "value": "jamlib" },
-        { "name": "Melody", "value": "melody" },
-        { "name": "Konkrete", "value": "konkrete" },
-        { "name": "mru", "value": "mru" }
+        "fabric-api",
+        "placeholder-api",
+        "walksylib",
+        "cloth-config",
+        "ukulib",
+        "searchables",
+        "polymer",
+        "fabric-language-kotlin",
+        "yacl",
+        "puzzles-lib",
+        "forge-config-api-port",
+        "malilib",
+        "fzzy-config",
+        "midnightlib",
+        "tcdcommons",
+        "architectury-api",
+        "collective",
+        "geckolib",
+        "balm",
+        "creativecore",
+        "cit-resewn",
+        "jamlib",
+        "melody",
+        "konkrete",
+        "mru"
     ]
 }
