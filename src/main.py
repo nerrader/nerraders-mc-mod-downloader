@@ -273,7 +273,7 @@ def slug_to_id(target_slug: str) -> str:
     return id
 
 
-def get_mods(slugorid: str, is_dependency=False) -> None:
+def get_mods(slugorid: str, api_session, is_dependency=False) -> None:
     """gets the mods from initial modlist, puts them in modrinth api to get the mods download url and filename
     for the download section. also checks the mod for any required dependencies and downloads them recursively
     dependencies installed have is_dependency set to True for obvious reasons
@@ -311,7 +311,7 @@ def get_mods(slugorid: str, is_dependency=False) -> None:
         "game_versions": f'["{version}"]',
         "include_changelog": "false",
     }
-    response = requests.get(api_url, params=api_params)
+    response = api_session.get(api_url, params=api_params)
     data = response.json()
     if response.status_code != 200:
         print(
@@ -370,21 +370,22 @@ def get_mods(slugorid: str, is_dependency=False) -> None:
         for dependency in latest_version.get("dependencies", [])
         if dependency.get("dependency_type") == "required"
     ]
-    if dependencies:
-        for dependency in dependencies:
-            try:
-                dependency_project_id = dependency.get("project_id")
-                if dependency_project_id not in visited_mod_ids:
-                    get_mods(dependency_project_id, is_dependency=True)
-            except Exception as error:
-                print(
-                    f"\nHey, you should probably download this dependency yourself cuz the script couldnt do it: {repr(error)} ERROR",
-                    style="warning",
-                )
-                print(
-                    f"Link: https://modrinth.com/mod/{dependency_project_id}",
-                    style="warning",
-                )
+    if not dependencies:
+        return
+    for dependency in dependencies:
+        try:
+            dependency_project_id = dependency.get("project_id")
+            if dependency_project_id not in visited_mod_ids:
+                get_mods(dependency_project_id, api_session, is_dependency=True)
+        except Exception as error:
+            print(
+                f"\nHey, you should probably download this dependency yourself cuz the script couldnt do it: {repr(error)} ERROR",
+                style="warning",
+            )
+            print(
+                f"Link: https://modrinth.com/mod/{dependency_project_id}",
+                style="warning",
+            )
 
 
 def clear_jar_files(directory_path: str) -> None:
@@ -402,7 +403,7 @@ def clear_jar_files(directory_path: str) -> None:
             print(f"Could not remove {file}: {error}", style="error")
 
 
-def download_mods(modlist: list[dict[str, str]]) -> None:
+def download_mods(modlist: list[dict[str, str]], api_session) -> None:
     """downloads the mods in the modlist using the api
     Args:
         modlist (list[dict[str, str]]): the modlist in which the function uses to download the mods
@@ -492,7 +493,7 @@ def download_mods(modlist: list[dict[str, str]]) -> None:
 
         print(f"downloading {target_mod.get('filename', 'mod_filename')}")
 
-        response = requests.get(url, stream=True)
+        response = api_session.get(url, stream=True)
         response.raise_for_status()
 
         with open(download_path, "wb") as file:
@@ -513,9 +514,10 @@ if __name__ == "__main__":
         id_to_slug_map: dict[str, str] = json.load(file)
     # now the program starts
     initial_modlist = choose_mods()
-    for mod in initial_modlist:
-        get_mods(mod)  # automatically appends to full_modlist
-    download_mods(full_modlist)
+    with requests.Session() as api_session:
+        for mod in initial_modlist:
+            get_mods(mod, api_session)  # automatically appends to full_modlist
+        download_mods(full_modlist, api_session)
     print(
         f"\n[green]{len(full_modlist)} mods downloaded![/green] ({len(dependency_mods_downloaded)} of which were dependencies)"
     )
