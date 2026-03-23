@@ -364,7 +364,7 @@ def get_mods(slugorid: str, api_session, is_dependency=False) -> None:
         dependency_mods_downloaded.append(slug)
     # it is a dependency, visual jukebox forgot to add the polymer in their dependencies
     if slug == "visual-jukebox":
-        get_mods(slug_to_id("polymer"), is_dependency=True)
+        get_mods(slug_to_id("polymer"), api_session, is_dependency=True)
     dependencies = [
         dependency
         for dependency in latest_version.get("dependencies", [])
