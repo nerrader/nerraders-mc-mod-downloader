@@ -6,9 +6,12 @@ import questionary
 import json
 from rich.theme import Theme
 from rich.console import Console
+from rich.progress import Progress
 import builder
 from pathlib import Path
 from typing import Any
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 
 # global variables initialization
 # things so the print() works with rich
@@ -25,6 +28,7 @@ idslugmap_filepath = appdata_filepath / "idslugmap.json"
 config_filepath = appdata_filepath / "config.json"
 
 # some variables for the thing to work
+threading_lock = Lock()
 visited_mod_ids: set[str] = set()
 full_modlist: list[dict[str, str]] = []
 failed_mods: list[str] = []
@@ -32,7 +36,19 @@ dependency_mods_downloaded: list[str] = []
 
 
 def configure_settings(config: dict[str, Any]):
+    """configure settings buddy
+
+    Args:
+        config (dict[str, Any]): the config to edit, its usually the one in config.json (what else)
+    """
+
     def change_minecraft_version() -> str:
+        """uses modrinth api to find the current minecraft game versions, then
+        uses a questionary autocomplete prompt to see what the user wants
+
+        Returns:
+            str: the game version chosen by the user
+        """
         api_url = "https://api.modrinth.com/v2/tag/game_version"
         data = requests.get(api_url).json()  # pretty much guaranteed to be 200
         minecraft_versions = [
@@ -49,6 +65,11 @@ def configure_settings(config: dict[str, Any]):
         return selected_version
 
     def change_mod_loader() -> str:
+        """uses questionary to find what mod loader the user wants to choose
+
+        Returns:
+            str: the mod loader chosen by the user
+        """
         selected_mod_loader = questionary.select(
             "Choose your mod loader:", choices=("Fabric", "NeoForge", "Forge", "Quilt")
         ).ask()
@@ -84,6 +105,13 @@ def configure_settings(config: dict[str, Any]):
         return selected_valid_versions
 
     def change_default_path() -> str:
+        """change the default path for the modpack download path, changing this will
+        remove the prompts to ask for your path during the downloading so it better
+        be correct
+
+        Returns:
+            str: the selected folder path by the user
+        """
         print(
             "Note that changing this setting will remove the pathing prompt when downloading",
             style="warning",
@@ -98,6 +126,9 @@ def configure_settings(config: dict[str, Any]):
         return selected_folder_path
 
     def change_behaviour_settings() -> None:
+        """behaviour settings are basically just the true/false value settings
+        returns None as the changes happen inside this function directly
+        """
         while True:
             behaviour_settings_chioces = (
                 questionary.Choice(
@@ -273,10 +304,11 @@ def slug_to_id(target_slug: str) -> str:
     return id
 
 
-def get_mods(slugorid: str, api_session, is_dependency=False) -> None:
+def get_mods(slugorid: str, api_session, is_dependency=False) -> list[dict[str, str]]:
     """gets the mods from initial modlist, puts them in modrinth api to get the mods download url and filename
-    for the download section. also checks the mod for any required dependencies and downloads them recursively
-    dependencies installed have is_dependency set to True for obvious reasons
+    for the download section. also checks the mod for any required dependencies and downloads them recursively.
+    dependencies installed have is_dependency set to True for obvious reasons. the mod and dependencies will later
+    be returned in a nested list format (look at returns section)
 
     Args:
         slugorid (str): the slug/id of the mod, immediately turned into seperate slug and id variables
@@ -286,7 +318,14 @@ def get_mods(slugorid: str, api_session, is_dependency=False) -> None:
         we need it because dependencies are using ids for slugorid, and regular mods are using the slug,
         so we can make the id and slug different variables
         Defaults to False.
+
+        api_session: just the api session being used, dont worry about it
+
+    returns: list[dict[str, str]]: either an empty list (when the mod fails, so extend() doesnt crash), or an
+    actual list of mod data. basically now the mod and its dependencies get added to a list in which it will later
+    be appended to the real full_modlist list outside of the function
     """
+    # initializing variables
     loaders = modpack_config.get("mod_loader", "fabric")
     version = modpack_config["version"]
     valid_versions = modpack_config.get("valid_versions", "release")
@@ -299,12 +338,13 @@ def get_mods(slugorid: str, api_session, is_dependency=False) -> None:
         id = slug_to_id(slugorid)
         slug = slugorid
     # so we dont have to do an api call if weve done the mod before
-    if not id or id in visited_mod_ids:
-        return
+    with threading_lock:
+        if not id or id in visited_mod_ids:
+            return []
 
-    visited_mod_ids.add(id)
-    print(f"visiting mod: {slug} {'(dependency)' if is_dependency else ''}")
+        visited_mod_ids.add(id)
     # put id in instead for consistency, slugs can change while ids cant
+    # api calling
     api_url = f"https://api.modrinth.com/v2/project/{id}/version"
     api_params = {
         "loaders": f'["{loaders.lower()}"]',
@@ -319,14 +359,16 @@ def get_mods(slugorid: str, api_session, is_dependency=False) -> None:
             style="error",
         )
         failed_mods.append(slug)
-        return
+        return []
     elif len(data) == 0:
         print(
             f"No files for fabric game version 1.21.11 found in mod {slug}",
             style="error",
         )
         failed_mods.append(slug)
-        return
+        return []
+
+    # filters data and versions
 
     latest_version = [  # filters out all versions not allowed in valid versions (usually alpha/beta versions)
         version for version in data if version.get("version_type") in valid_versions
@@ -337,7 +379,7 @@ def get_mods(slugorid: str, api_session, is_dependency=False) -> None:
             f"Mod {slug} has no versions with {valid_versions} releases", style="error"
         )
         failed_mods.append(slug)
-        return
+        return []
     latest_version = latest_version[0]  # the actual latest version
 
     target_file = next(  # look at files, find the latest one that is a primary file
@@ -353,30 +395,36 @@ def get_mods(slugorid: str, api_session, is_dependency=False) -> None:
             style="error",
         )
         failed_mods.append(slug)
-        return
+        return []
+
+    # collected mods thingy
+    collected_mods: list[dict[str, str]] = []
     mod_data = {
         "slug": slug,
         "filename": target_filename,
         "url": target_url,
     }
-    full_modlist.append(mod_data)
-    if is_dependency:
-        dependency_mods_downloaded.append(slug)
+    collected_mods.append(mod_data)
     # it is a dependency, visual jukebox forgot to add the polymer in their dependencies
     if slug == "visual-jukebox":
         get_mods(slug_to_id("polymer"), api_session, is_dependency=True)
+
+    # dependency search thingyu
     dependencies = [
         dependency
         for dependency in latest_version.get("dependencies", [])
         if dependency.get("dependency_type") == "required"
     ]
-    if not dependencies:
-        return
     for dependency in dependencies:
         try:
-            dependency_project_id = dependency.get("project_id")
+            dependency_mods_downloaded.append(slug)
+            dependency_project_id: str = dependency.get("project_id")
             if dependency_project_id not in visited_mod_ids:
-                get_mods(dependency_project_id, api_session, is_dependency=True)
+                new_dependency = get_mods(
+                    dependency_project_id, api_session, is_dependency=True
+                )
+                collected_mods.extend(new_dependency)
+
         except Exception as error:
             print(
                 f"\nHey, you should probably download this dependency yourself cuz the script couldnt do it: {repr(error)} ERROR",
@@ -386,6 +434,7 @@ def get_mods(slugorid: str, api_session, is_dependency=False) -> None:
                 f"Link: https://modrinth.com/mod/{dependency_project_id}",
                 style="warning",
             )
+    return collected_mods
 
 
 def clear_jar_files(directory_path: str) -> None:
@@ -404,13 +453,16 @@ def clear_jar_files(directory_path: str) -> None:
 
 
 def download_mods(modlist: list[dict[str, str]], api_session) -> None:
-    """downloads the mods in the modlist using the api
+    """downloads the mods in the modlist using the api, also has progress bars, top one is the main one
+    where it tracks how many mods have been downloaded, and the other ones are sub-progress bars where it
+    shows how much of the mods file contents have been downloaded
     Args:
         modlist (list[dict[str, str]]): the modlist in which the function uses to download the mods
+        api_session: dont worry about it, its just the api session
     """
 
     def get_folder_path() -> str:
-        """finds the folder path of the modpack
+        """finds the folder path of the modpack by asking questions using questionary
 
         Returns:
             str: folder path
@@ -484,25 +536,39 @@ def download_mods(modlist: list[dict[str, str]], api_session) -> None:
             clear_jar_files(folder_path)
             print("Everything cleared.", style="success")
 
-    for target_mod in modlist:
-        download_path = os.path.join(folder_path, target_mod["filename"])
-        url = target_mod.get("url")
-        if not url:
-            print(f"{target_mod} has no url!")
-            return
+    # actually downloading mods (with progress bar)
+    with Progress() as progress:
+        mods_downloaded = progress.add_task("Downloading Mods...", total=len(modlist))
 
-        print(f"downloading {target_mod.get('filename', 'mod_filename')}")
+        def download_one_mod(target_mod):
+            """just so the threadpoolexecutor works well so the async nature works
+            basically it takes one mod from the full_modlist and downloads it"""
+            download_path = os.path.join(folder_path, target_mod.get("filename"))
+            url = target_mod.get("url")
+            if not url:
+                print(f"{target_mod} has no url!")
+                return
 
-        response = api_session.get(url, stream=True)
-        response.raise_for_status()
+            response = api_session.get(url, stream=True)
+            response.raise_for_status()
 
-        with open(download_path, "wb") as file:
-            for chunk in response.iter_content(
-                chunk_size=8192
-            ):  # idk what tf this does but it works according to google so
-                file.write(chunk)
+            mod_filesize = int(response.headers.get("Content-Length", 0))
+            mod_download_progress = progress.add_task(
+                f"downloading {target_mod.get('slug')}",
+                total=mod_filesize,
+            )
+            with open(download_path, "wb") as file:
+                for chunk in response.iter_content(
+                    chunk_size=8192
+                ):  # idk what tf this does but it works according to google so
+                    file.write(chunk)
+                    progress.update(mod_download_progress, advance=8192)
 
-        print("download complete", style="success")
+            progress.update(mods_downloaded, advance=1)
+            progress.remove_task(mod_download_progress)
+
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            executor.map(download_one_mod, modlist)
 
 
 if __name__ == "__main__":
@@ -515,14 +581,22 @@ if __name__ == "__main__":
     # now the program starts
     initial_modlist = choose_mods()
     with requests.Session() as api_session:
-        for mod in initial_modlist:
-            get_mods(mod, api_session)  # automatically appends to full_modlist
+        with ThreadPoolExecutor() as executor:
+            results = executor.map(
+                lambda mod: get_mods(mod, api_session), initial_modlist
+            )
+            for mod_data in results:
+                if mod_data is not None:
+                    full_modlist.extend(mod_data)
+        # for mod in initial_modlist:
+        #     get_mods(mod, api_session)  # automatically appends to full_modlist
         download_mods(full_modlist, api_session)
-    print(
-        f"\n[green]{len(full_modlist)} mods downloaded![/green] ({len(dependency_mods_downloaded)} of which were dependencies)"
-    )
-    if len(failed_mods) > 0:
         print(
-            f"{len(failed_mods)} mods failed to download: {failed_mods}", style="error"
+            f"\n[green]{len(full_modlist)} mods downloaded![/green] ({len(dependency_mods_downloaded)} of which were dependencies)"
         )
-    input("Press Enter to exit.")
+        if len(failed_mods) > 0:
+            print(
+                f"{len(failed_mods)} mods failed to download: {failed_mods}",
+                style="error",
+            )
+        input("Press Enter to exit.")
