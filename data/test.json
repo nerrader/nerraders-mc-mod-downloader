@@ -1,0 +1,29 @@
+{
+    "library_mods": [
+        "fabric-api",
+        "placeholder-api",
+        "walksylib",
+        "cloth-config",
+        "ukulib",
+        "searchables",
+        "polymer",
+        "fabric-language-kotlin",
+        "yacl",
+        "puzzles-lib",
+        "forge-config-api-port",
+        "malilib",
+        "fzzy-config",
+        "midnightlib",
+        "tcdcommons",
+        "architectury-api",
+        "collective",
+        "geckolib",
+        "balm",
+        "creativecore",
+        "cit-resewn",
+        "jamlib",
+        "melody",
+        "konkrete",
+        "mru"
+    ]
+}

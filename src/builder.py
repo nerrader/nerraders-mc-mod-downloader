@@ -63,12 +63,14 @@ def main():
         slugslist: list[str] = []
         with open(mods_filepath) as file:
             modslist = json.load(file)
-            for (
-                category
-            ) in modslist.values():  # for category in modslist, for mod in category
-                for mod in category:
-                    slugslist.append(mod["value"])
-        return slugslist
+            for category, category_mods in modslist.items():
+                if category == "library_mods":
+                    for mod in category_mods:
+                        slugslist.append(mod)
+                else:
+                    for mod in category_mods:
+                        slugslist.append(mod.get("value", mod))
+            return slugslist
 
     # this gets the ids according to slugs and puts them in a dictionary (map)
     def modify_slugsmap(slugslist: list[str]) -> None:
