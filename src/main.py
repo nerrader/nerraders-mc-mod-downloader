@@ -6,7 +6,13 @@ import questionary
 import json
 from rich.theme import Theme
 from rich.console import Console
-from rich.progress import Progress
+from rich.progress import (
+    Progress,
+    BarColumn,
+    TextColumn,
+    DownloadColumn,
+    TaskProgressColumn,
+)
 import builder
 from pathlib import Path
 from typing import Any
@@ -233,9 +239,9 @@ def choose_mods() -> list[str]:
         "Audio & Ambience": "auditory_mods",
         "Building": "building_mods",
         "Miscellaneous": "misc_mods",
-        "Multiplayer & Social": "social_mods",
-        "Configure Settings": "settings",
+        "Multiplayer & Social\n": "social_mods",  # for that gap between categories and stuff
         "Finish & Download": "exit and save",
+        "Configure Settings": "settings",
         "Clear Modlist": "clear",
         "Exit & Cancel": "cancel",
     }
@@ -467,63 +473,89 @@ def download_mods(modlist: list[dict[str, str]], api_session) -> None:
         Returns:
             str: folder path
         """
-        folder_path = (
-            Path(os.getenv("APPDATA", str(Path.home() / "AppData" / "Roaming")))
-            / ".minecraft"
-            / "modpacks"
+        # finding the folder path (changes depending the mc launcher they use)
+        # redefining appdata_filepath for this func only
+        appdata_filepath = Path(
+            os.getenv("APPDATA", Path.home() / "AppData" / "Roaming")
         )
+        folder_path_search_locations: dict[str, Path] = {
+            "Minecraft Launcher": appdata_filepath / ".minecraft" / "modpacks",
+            "Prism Launcher": appdata_filepath / "PrismLauncher" / "instances",
+            "Lunar Client": Path.home() / ".lunarclient" / "offline" / "multiver",
+            "Feather Client": appdata_filepath / ".feather" / "instances",
+            "CurseForge": Path.home() / "curseforge" / "minecraft" / "instances",
+        }
+        launcher_choices: list[str] = [
+            location
+            for location, folderpath in folder_path_search_locations.items()
+            if folderpath.exists()
+        ]
 
-        if not folder_path.exists():  #
+        # if any of the filepaths in folder_path_search_locations doesnt exist
+        if not launcher_choices:
             # not really a warning but i think yellow fits here so
             print(
                 "Tip: You can copy and paste the path from the file explorer search bar",
                 style="warning",
             )
             folder_path = questionary.path(
-                f"Modpack default path ({folder_path}) not used, please manually enter a path where mods will be downloaded:",
+                "Could not find a modpacks folder location, please manually enter a path where mods will be downloaded:",
+            ).ask()
+            return folder_path
+
+        # make them choose the launcher/path they want
+        if len(launcher_choices) > 1:
+            launcher_choice = questionary.select(
+                "Which launcher do you want to use to download the mods?",
+                choices=launcher_choices + ["\nCreate Manual Path"],
             ).ask()
         else:
-            directories = [f.name for f in folder_path.iterdir() if f.is_dir()]
-            if not directories:
-                folder_path = (
-                    folder_path
-                    / questionary.text(
-                        "No modpacks found, please create a name to call your new modpack:",
-                        default="Default",
-                    ).ask()
-                    / "mods"
-                )
-                os.makedirs(folder_path)
-            else:
-                folder_path = (
-                    folder_path
-                    / questionary.select(
-                        "Which modpack do you want your mods installed?",
-                        choices=directories,
-                    ).ask()
-                    / "mods"
-                )
-
-        confirm_folderpath = questionary.confirm(
-            f"Is ({folder_path}) the correct filepath?"
-        ).ask()
-        if not confirm_folderpath:
-            print("just type it in at this point then", style="error")
+            launcher_choice = launcher_choices[0]
+        if launcher_choice == "Create Manual Path":
             print(
                 "Tip: You can copy and paste the path from the file explorer search bar",
                 style="warning",
             )
             folder_path = questionary.path(
-                "Folderpath to download the mods: (press tab)",
+                "Please enter a path where mods will be downloaded:",
             ).ask()
-        os.makedirs(folder_path, exist_ok=True)
-        return folder_path
+            return folder_path
+        selected_path = folder_path_search_locations[launcher_choice]
+
+        # checking if there are any modpack folders inside
+        directories = [
+            folder.name for folder in selected_path.iterdir() if folder.is_dir()
+        ]
+        # if there are
+        if directories:
+            modpack_choice = questionary.select(
+                "Which modpack do you want your mods to be downloaded in?",
+                choices=directories
+                + [questionary.Separator(), "Create New Modpack Folder"],
+            ).ask()
+            if modpack_choice == "Create New Modpack Folder":
+                modpack_name = questionary.text(
+                    "What should the name of the new modpack be?"
+                ).ask()
+                return selected_path / modpack_name / "mods"
+            return selected_path / modpack_choice / "mods"
+
+        # if there werent, then create a new folder (name provided by user)
+        modpack_name = questionary.text("What should the name of the new modpack be?")
+        return selected_path / modpack_name / "mods"
 
     # getting folder path for downloading
     if modpack_config.get("mods_directory"):
         folder_path = modpack_config["mods_directory"]
     else:
-        folder_path = get_folder_path()
+        while True:
+            folder_path = get_folder_path()
+            confirm_folderpath = questionary.confirm(
+                f"Is ({folder_path}) the correct filepath?"
+            ).ask()
+            if confirm_folderpath:
+                os.makedirs(folder_path, exist_ok=True)
+                break
 
     # clear files first before downloading or not
     if modpack_config.get("auto_clear_jars"):
@@ -537,7 +569,7 @@ def download_mods(modlist: list[dict[str, str]], api_session) -> None:
             print("Everything cleared.", style="success")
 
     # actually downloading mods (with progress bar)
-    with Progress() as progress:
+    with Progress(BarColumn(), TaskProgressColumn(), DownloadColumn()) as progress:
         mods_downloaded = progress.add_task("Downloading Mods...", total=len(modlist))
 
         def download_one_mod(target_mod):
