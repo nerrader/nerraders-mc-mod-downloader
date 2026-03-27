@@ -5,14 +5,16 @@ from sys import exit
 import questionary
 import json
 from rich.theme import Theme
-from rich.console import Console
+from rich.console import Console, Group
 from rich.progress import (
     Progress,
     BarColumn,
     TextColumn,
     DownloadColumn,
     TaskProgressColumn,
+    MofNCompleteColumn,
 )
+from rich.live import Live
 import builder
 from pathlib import Path
 from typing import Any
@@ -569,8 +571,21 @@ def download_mods(modlist: list[dict[str, str]], api_session) -> None:
             print("Everything cleared.", style="success")
 
     # actually downloading mods (with progress bar)
-    with Progress(BarColumn(), TaskProgressColumn(), DownloadColumn()) as progress:
-        mods_downloaded = progress.add_task("Downloading Mods...", total=len(modlist))
+    main_progress = Progress(
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        MofNCompleteColumn(),
+    )
+    mods_downloaded = main_progress.add_task("Downloading Mods...", total=len(modlist))
+    mod_download_progress = Progress(
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        DownloadColumn(),
+    )
+    progress_group = Group(main_progress, mod_download_progress)
+    with Live(progress_group, refresh_per_second=10):
 
         def download_one_mod(target_mod):
             """just so the threadpoolexecutor works well so the async nature works
@@ -585,7 +600,7 @@ def download_mods(modlist: list[dict[str, str]], api_session) -> None:
             response.raise_for_status()
 
             mod_filesize = int(response.headers.get("Content-Length", 0))
-            mod_download_progress = progress.add_task(
+            mod_downloading_progress_id = mod_download_progress.add_task(
                 f"downloading {target_mod.get('slug')}",
                 total=mod_filesize,
             )
@@ -594,10 +609,12 @@ def download_mods(modlist: list[dict[str, str]], api_session) -> None:
                     chunk_size=8192
                 ):  # idk what tf this does but it works according to google so
                     file.write(chunk)
-                    progress.update(mod_download_progress, advance=8192)
+                    mod_download_progress.update(
+                        mod_downloading_progress_id, advance=8192
+                    )
 
-            progress.update(mods_downloaded, advance=1)
-            progress.remove_task(mod_download_progress)
+            main_progress.update(mods_downloaded, advance=1)
+            mod_download_progress.remove_task(mod_downloading_progress_id)
 
         with ThreadPoolExecutor(max_workers=5) as executor:
             executor.map(download_one_mod, modlist)
@@ -632,3 +649,8 @@ if __name__ == "__main__":
                 style="error",
             )
         input("Press Enter to exit.")
+
+# - more mods (if mods are too much ill figure out a way to better find mods and stuff)
+# - better progress bars
+# - better error handling
+# - code polish
