@@ -4,8 +4,7 @@ import os
 from sys import exit
 import questionary
 import json
-from rich.theme import Theme
-from rich.console import Console, Group
+from rich.console import Group
 from rich.progress import (
     Progress,
     BarColumn,
@@ -15,32 +14,28 @@ from rich.progress import (
     MofNCompleteColumn,
 )
 from rich.live import Live
-import builder
 from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor
-from threading import Lock
 
-# global variables initialization
-# things so the print() works with rich
-custom_theme = Theme({"error": "bold red", "success": "green", "warning": "yellow"})
-console = Console(theme=custom_theme, highlight=False)
-print = console.print
+# project initialization module (my own one)
+import builder
 
-# filepaths
-appdata_filepath = appdata_filepath = (
-    Path(os.getenv("APPDATA") or (Path.home() / "AppData" / "Roaming"))
-) / "mc-mods-downloader"
-mods_filepath = appdata_filepath / "mods.json"
-idslugmap_filepath = appdata_filepath / "idslugmap.json"
-config_filepath = appdata_filepath / "config.json"
+# global variables initialization, global variables (constants) have to start with const.
+import constants as const
 
-# some variables for the thing to work
-threading_lock = Lock()
-visited_mod_ids: set[str] = set()
-full_modlist: list[dict[str, str]] = []
-failed_mods: list[str] = []
-dependency_mods_downloaded: list[str] = []
+# overriding default print with rich print
+print = const.CONSOLE.print
+
+
+class DownloadContext:
+    def __init__(self, modpack_config, id_slug_map):
+        self.modpack_config = modpack_config
+        self.id_slug_map = id_slug_map
+        self.visited_mod_ids: set[str] = set()
+        self.full_modlist: list[dict[str, str]] = []
+        self.failed_mods: list[dict[str, str]] = []
+        self.dependency_mods_counter: int = 0
 
 
 def configure_settings(config: dict[str, Any]):
@@ -58,7 +53,9 @@ def configure_settings(config: dict[str, Any]):
             str: the game version chosen by the user
         """
         api_url = "https://api.modrinth.com/v2/tag/game_version"
-        data = requests.get(api_url).json()  # pretty much guaranteed to be 200
+        data = requests.get(
+            api_url, timeout=const.API_TIMEOUT
+        ).json()  # pretty much guaranteed to be 200
         minecraft_versions = [
             version["version"]
             for version in data
@@ -133,44 +130,39 @@ def configure_settings(config: dict[str, Any]):
         ).ask()
         return selected_folder_path
 
-    def change_behaviour_settings() -> None:
+    def change_behaviour_settings() -> dict[str, bool]:
         """behaviour settings are basically just the true/false value settings
         returns None as the changes happen inside this function directly
         """
+        # gets the current behaviour settings
+        new_behaviour_settings: dict[str, bool] = config["behaviour_settings"]
         while True:
             behaviour_settings_chioces = (
                 questionary.Choice(
-                    title=f"Skip .jar files Deletion Confirmation [{config['auto_clear_jars']}]",
+                    title=f"Skip .jar files Deletion Confirmation [{new_behaviour_settings['auto_clear_jars']}]",
                     value="auto_clear_jars",
                 ),
                 questionary.Choice(
-                    title=f"Show Detailed Logs [{config['show_deatiled_logs']}]",
+                    title=f"Show Detailed Logs [{new_behaviour_settings['show_deatiled_logs']}]",
                     value="show_deatiled_logs",
                 ),
                 questionary.Choice(title="Go Back", value="back"),
             )
 
-            behaviour_settings_selection = questionary.select(
+            selection = questionary.select(
                 "Behaviour Settings",
                 choices=behaviour_settings_chioces,
                 default=None,
             ).ask()
-            if (
-                behaviour_settings_selection == "back"
-                or behaviour_settings_selection is None
-            ):
-                break
+            if selection == "back" or selection is None:
+                return new_behaviour_settings
             else:
-                config[behaviour_settings_selection] = not config[
-                    behaviour_settings_selection
+                new_behaviour_settings[selection] = not new_behaviour_settings[
+                    selection
                 ]
 
-    def save_config() -> None:
-        with open(config_filepath, "w") as file:
-            json.dump(config, file, indent=4)
-        print("Successfully saved settings", style="success")
-
-    def main() -> None:
+    def main_settings_loop() -> None:
+        """the main menu, where the user selects a thing to change"""
         nonlocal config
         while True:
             choice = questionary.select(
@@ -181,8 +173,9 @@ def configure_settings(config: dict[str, Any]):
                     "Select Valid Versions",
                     "Set Default Folder Path",
                     "Behaviour Settings",
-                    "Reset Settings to Default",
+                    questionary.Separator(),
                     "Exit and Save",
+                    "Reset Settings to Default",
                     "Cancel",
                 ),
             ).ask()
@@ -196,41 +189,36 @@ def configure_settings(config: dict[str, Any]):
                 case "Set Default Folder Path":
                     config["mods_directory"] = change_default_path()
                 case "Behaviour Settings":
-                    change_behaviour_settings()  # config changes inside function so no return
+                    config["behaviour_settings"] = change_behaviour_settings()
                 case "Reset Settings to Default":
-                    config = {
-                        "version": "1.21.11",
-                        "mod_loader": "fabric",
-                        "valid_versions": ["release"],
-                        "mods_directory": "",
-                        "auto_clear_jars": False,
-                        "show_deatiled_logs": False,
-                    }
-                    # yes i did just copy and paste the entire default config
+                    config = builder.get_default_config()
                 case "Exit and Save":
-                    save_config()
+                    builder.save_config(config)
                     break
 
                 case "Cancel":
                     break
         return
 
-    main()
-    return config  # so the app can use them immediately without reading the file again
+    main_settings_loop()
+    return config
 
 
-def choose_mods() -> list[str]:
+def main_menu(current_config, json_modlist_data) -> tuple[list[str], dict]:
     """displays a questionary type ui to choose minecraft mods based off whats in mods.json, also where you configure settings
 
     Returns:
+        tuple: to wrap both of them into a sort of list
+
         list[str]: the initial modlist which stores the mods slug
         (needed for putting it through the modrinth api later in get_mods(),
         it is not the final list used in download_mods(),
+
+        dict: the modpack_config (if they used configure_settings)
+
     """
-    global modpack_config
     initial_modlist: list[str] = []
-    with open(mods_filepath) as file:
-        json_modlist_data = json.load(file)
+    updated_config: dict = {}
 
     category_map = {
         "Optimization & Performance": "optimization_mods",
@@ -254,16 +242,17 @@ def choose_mods() -> list[str]:
         ).ask()
         json_key = category_map[category_choice]
 
-        if json_key == "exit and save":
-            return initial_modlist
-        elif json_key == "settings":
-            modpack_config = configure_settings(modpack_config)
-            continue
-        elif json_key == "clear":
-            initial_modlist = []
-            continue
-        elif json_key == "cancel":
-            exit(0)
+        match json_key:
+            case "exit and save":
+                return (initial_modlist, updated_config)
+            case "settings":
+                updated_config = configure_settings(current_config)
+                continue
+            case "clear":
+                initial_modlist = []
+                continue
+            case "cancel":  # cancel
+                exit(0)
 
         mods_in_category = json_modlist_data.get(json_key, [])
 
@@ -287,16 +276,16 @@ def choose_mods() -> list[str]:
         initial_modlist = [
             mod
             for mod in initial_modlist
-            if mod not in [mod["value"] for mod in mods_in_category]
+            if mod not in [mod.get("value") for mod in mods_in_category]
         ]
         if selection is not None:
             initial_modlist += selection
 
 
-def slug_to_id(target_slug: str) -> str:
+def slug_to_id(target_slug: str, id_slug_map: dict[str, str]) -> str:
     """converts the target slug into the id (id from modrinth)
     this is mainly for consistency purposes as slugs can change while ids cant
-    if it wasnt obvious enough this is by using idslugmap.json
+    if it wasnt obvious enough this is done by using idslugmap.json
 
     Args:
         target_slug (str): target slug
@@ -305,14 +294,16 @@ def slug_to_id(target_slug: str) -> str:
         str: the id attached to the slug
     """
     id = next(
-        (id for id, slug in id_to_slug_map.items() if slug == target_slug),
+        (id for id, slug in id_slug_map.items() if slug == target_slug),
     )
     if id is None:
         print("yeah so the slug_to_id function mightve broken", style="error")
     return id
 
 
-def get_mods(slugorid: str, api_session, is_dependency=False) -> list[dict[str, str]]:
+def get_mods(
+    slugorid: str, api_session, download_context, is_dependency=False
+) -> list[dict[str, str]]:
     """gets the mods from initial modlist, puts them in modrinth api to get the mods download url and filename
     for the download section. also checks the mod for any required dependencies and downloads them recursively.
     dependencies installed have is_dependency set to True for obvious reasons. the mod and dependencies will later
@@ -334,23 +325,23 @@ def get_mods(slugorid: str, api_session, is_dependency=False) -> list[dict[str, 
     be appended to the real full_modlist list outside of the function
     """
     # initializing variables
-    loaders = modpack_config.get("mod_loader", "fabric")
-    version = modpack_config["version"]
-    valid_versions = modpack_config.get("valid_versions", "release")
+    loaders = download_context.modpack_config["mod_loader"]
+    version = download_context.modpack_config["version"]
+    valid_versions = download_context.modpack_config.get("valid_versions", "release")
     # for dependencies the "slug" is an id
     if is_dependency:
         id = slugorid
-        slug = id_to_slug_map[id]
+        slug = download_context.id_slug_map[id]
     # turn everything into an id for consistency
     else:
-        id = slug_to_id(slugorid)
+        id = slug_to_id(slugorid, download_context.id_slug_map)
         slug = slugorid
     # so we dont have to do an api call if weve done the mod before
-    with threading_lock:
-        if not id or id in visited_mod_ids:
+    with const.THREADING_LOCK:
+        if not id or id in download_context.visited_mod_ids:
             return []
 
-        visited_mod_ids.add(id)
+        download_context.visited_mod_ids.add(id)
     # put id in instead for consistency, slugs can change while ids cant
     # api calling
     api_url = f"https://api.modrinth.com/v2/project/{id}/version"
@@ -359,21 +350,25 @@ def get_mods(slugorid: str, api_session, is_dependency=False) -> list[dict[str, 
         "game_versions": f'["{version}"]',
         "include_changelog": "false",
     }
-    response = api_session.get(api_url, params=api_params)
+    response = api_session.get(api_url, params=api_params, timeout=const.API_TIMEOUT)
     data = response.json()
     if response.status_code != 200:
         print(
             f"Something wrong happened, status code: {response.status_code}",
             style="error",
         )
-        failed_mods.append(slug)
+        download_context.failed_mods.append(
+            {"slug": slug, "cause": f"status code {response.status_code}"}
+        )
         return []
     elif len(data) == 0:
         print(
-            f"No files for fabric game version 1.21.11 found in mod {slug}",
+            f"No files for fabric game version {version} found in mod {slug}",
             style="error",
         )
-        failed_mods.append(slug)
+        download_context.failed_mods.append(
+            {"slug": slug, "cause": f"no files for version {version}"}
+        )
         return []
 
     # filters data and versions
@@ -386,7 +381,9 @@ def get_mods(slugorid: str, api_session, is_dependency=False) -> list[dict[str, 
         print(
             f"Mod {slug} has no versions with {valid_versions} releases", style="error"
         )
-        failed_mods.append(slug)
+        download_context.failed_mods.append(
+            {"slug": slug, "cause": f"mod doesnt have any {valid_versions} releases"}
+        )
         return []
     latest_version = latest_version[0]  # the actual latest version
 
@@ -402,7 +399,9 @@ def get_mods(slugorid: str, api_session, is_dependency=False) -> list[dict[str, 
             f"somethings up with the latest version url and filename of mod {slug}",
             style="error",
         )
-        failed_mods.append(slug)
+        download_context.failed_mods.append(
+            {"slug": slug, "cause": "the url and filename doesnt exist for some reason"}
+        )
         return []
 
     # collected mods thingy
@@ -415,7 +414,13 @@ def get_mods(slugorid: str, api_session, is_dependency=False) -> list[dict[str, 
     collected_mods.append(mod_data)
     # it is a dependency, visual jukebox forgot to add the polymer in their dependencies
     if slug == "visual-jukebox":
-        get_mods(slug_to_id("polymer"), api_session, is_dependency=True)
+        polymer_mod_data = get_mods(
+            slug_to_id("polymer", download_context.id_slug_map),
+            api_session,
+            download_context,
+            is_dependency=True,
+        )
+        collected_mods.extend(polymer_mod_data)
 
     # dependency search thingyu
     dependencies = [
@@ -425,11 +430,14 @@ def get_mods(slugorid: str, api_session, is_dependency=False) -> list[dict[str, 
     ]
     for dependency in dependencies:
         try:
-            dependency_mods_downloaded.append(slug)
+            download_context.dependency_mods_counter += 1
             dependency_project_id: str = dependency.get("project_id")
-            if dependency_project_id not in visited_mod_ids:
+            if dependency_project_id not in download_context.visited_mod_ids:
                 new_dependency = get_mods(
-                    dependency_project_id, api_session, is_dependency=True
+                    dependency_project_id,
+                    api_session,
+                    download_context,
+                    is_dependency=True,
                 )
                 collected_mods.extend(new_dependency)
 
@@ -460,7 +468,7 @@ def clear_jar_files(directory_path: str) -> None:
             print(f"Could not remove {file}: {error}", style="error")
 
 
-def download_mods(modlist: list[dict[str, str]], api_session) -> None:
+def download_mods(modlist: list[dict[str, str]], api_session, download_context) -> None:
     """downloads the mods in the modlist using the api, also has progress bars, top one is the main one
     where it tracks how many mods have been downloaded, and the other ones are sub-progress bars where it
     shows how much of the mods file contents have been downloaded
@@ -469,22 +477,22 @@ def download_mods(modlist: list[dict[str, str]], api_session) -> None:
         api_session: dont worry about it, its just the api session
     """
 
-    def get_folder_path() -> str:
+    def get_folder_path() -> Path:
         """finds the folder path of the modpack by asking questions using questionary
 
         Returns:
             str: folder path
         """
         # finding the folder path (changes depending the mc launcher they use)
-        # redefining appdata_filepath for this func only
-        appdata_filepath = Path(
+        # redefining APPDATA_FILEPATH for this func only
+        APPDATA_FILEPATH = Path(
             os.getenv("APPDATA", Path.home() / "AppData" / "Roaming")
         )
         folder_path_search_locations: dict[str, Path] = {
-            "Minecraft Launcher": appdata_filepath / ".minecraft" / "modpacks",
-            "Prism Launcher": appdata_filepath / "PrismLauncher" / "instances",
+            "Minecraft Launcher": APPDATA_FILEPATH / ".minecraft" / "modpacks",
+            "Prism Launcher": APPDATA_FILEPATH / "PrismLauncher" / "instances",
             "Lunar Client": Path.home() / ".lunarclient" / "offline" / "multiver",
-            "Feather Client": appdata_filepath / ".feather" / "instances",
+            "Feather Client": APPDATA_FILEPATH / ".feather" / "instances",
             "CurseForge": Path.home() / "curseforge" / "minecraft" / "instances",
         }
         launcher_choices: list[str] = [
@@ -509,7 +517,8 @@ def download_mods(modlist: list[dict[str, str]], api_session) -> None:
         if len(launcher_choices) > 1:
             launcher_choice = questionary.select(
                 "Which launcher do you want to use to download the mods?",
-                choices=launcher_choices + ["\nCreate Manual Path"],
+                choices=launcher_choices
+                + [questionary.Separator(), "Create Manual Path"],
             ).ask()
         else:
             launcher_choice = launcher_choices[0]
@@ -543,15 +552,23 @@ def download_mods(modlist: list[dict[str, str]], api_session) -> None:
             return selected_path / modpack_choice / "mods"
 
         # if there werent, then create a new folder (name provided by user)
-        modpack_name = questionary.text("What should the name of the new modpack be?")
+        modpack_name = questionary.text(
+            "What should the name of the new modpack be?"
+        ).ask()
         return selected_path / modpack_name / "mods"
 
     # getting folder path for downloading
-    if modpack_config.get("mods_directory"):
-        folder_path = modpack_config["mods_directory"]
+    if download_context.modpack_config.get("mods_directory"):
+        folder_path = download_context.modpack_config["mods_directory"]
     else:
         while True:
             folder_path = get_folder_path()
+            if not folder_path:
+                print(
+                    "Folder path was empty so we are sending you right back to the selection prompts",
+                    style="error",
+                )
+                continue
             confirm_folderpath = questionary.confirm(
                 f"Is ({folder_path}) the correct filepath?"
             ).ask()
@@ -560,7 +577,7 @@ def download_mods(modlist: list[dict[str, str]], api_session) -> None:
                 break
 
     # clear files first before downloading or not
-    if modpack_config.get("auto_clear_jars"):
+    if download_context.modpack_config.get("auto_clear_jars"):
         clear_jar_files(folder_path)
     else:
         clear_folder = questionary.confirm(
@@ -596,7 +613,7 @@ def download_mods(modlist: list[dict[str, str]], api_session) -> None:
                 print(f"{target_mod} has no url!")
                 return
 
-            response = api_session.get(url, stream=True)
+            response = api_session.get(url, stream=True, timeout=const.API_TIMEOUT)
             response.raise_for_status()
 
             mod_filesize = int(response.headers.get("Content-Length", 0))
@@ -610,7 +627,7 @@ def download_mods(modlist: list[dict[str, str]], api_session) -> None:
                 ):  # idk what tf this does but it works according to google so
                     file.write(chunk)
                     mod_download_progress.update(
-                        mod_downloading_progress_id, advance=8192
+                        mod_downloading_progress_id, advance=len(chunk)
                     )
 
             main_progress.update(mods_downloaded, advance=1)
@@ -620,37 +637,38 @@ def download_mods(modlist: list[dict[str, str]], api_session) -> None:
             executor.map(download_one_mod, modlist)
 
 
-if __name__ == "__main__":
-    # program initialization (.json files, declaring global variables, etc)
-    builder.main()
-    with open(config_filepath) as file:
-        modpack_config: dict[str, Any] = json.load(file)
-    with open(idslugmap_filepath) as file:
-        id_to_slug_map: dict[str, str] = json.load(file)
+def main():
+    mods_json, id_slug_map, modpack_config = builder.main()
     # now the program starts
-    initial_modlist = choose_mods()
+    initial_modlist, config_update = main_menu(modpack_config, mods_json)
+    modpack_config.update(config_update)
+    # session so the tcp connection doesnt reset
+    download_context = DownloadContext(modpack_config, id_slug_map)
     with requests.Session() as api_session:
+        # threadpoolexecutor to allow multiple thread execution (async pretty much)
         with ThreadPoolExecutor() as executor:
             results = executor.map(
-                lambda mod: get_mods(mod, api_session), initial_modlist
+                lambda mod: get_mods(mod, api_session, download_context),
+                initial_modlist,
             )
             for mod_data in results:
                 if mod_data is not None:
-                    full_modlist.extend(mod_data)
-        # for mod in initial_modlist:
-        #     get_mods(mod, api_session)  # automatically appends to full_modlist
-        download_mods(full_modlist, api_session)
+                    download_context.full_modlist.extend(mod_data)
+        download_mods(download_context.full_modlist, api_session, download_context)
         print(
-            f"\n[green]{len(full_modlist)} mods downloaded![/green] ({len(dependency_mods_downloaded)} of which were dependencies)"
+            f"\n[green]{len(download_context.full_modlist)} mods downloaded![/green] ({download_context.dependency_mods_counter} of which were dependencies)"
         )
-        if len(failed_mods) > 0:
+        if len(download_context.failed_mods) > 0:
             print(
-                f"{len(failed_mods)} mods failed to download: {failed_mods}",
+                f"{len(download_context.failed_mods)} mods failed to download: {download_context.failed_mods}",
                 style="error",
             )
-        input("Press Enter to exit.")
+        input("")
+
+
+if __name__ == "__main__":
+    main()
 
 # - more mods (if mods are too much ill figure out a way to better find mods and stuff)
-# - better progress bars
 # - better error handling
 # - code polish
