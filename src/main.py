@@ -3,7 +3,6 @@ from glob import glob
 import os
 from sys import exit
 import questionary
-import json
 from rich.console import Group
 from rich.progress import (
     Progress,
@@ -17,6 +16,7 @@ from rich.live import Live
 from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
 
 # project initialization module (my own one)
 import builder
@@ -28,14 +28,14 @@ import constants as const
 print = const.CONSOLE.print
 
 
+@dataclass
 class DownloadContext:
-    def __init__(self, modpack_config, id_slug_map):
-        self.modpack_config = modpack_config
-        self.id_slug_map = id_slug_map
-        self.visited_mod_ids: set[str] = set()
-        self.full_modlist: list[dict[str, str]] = []
-        self.failed_mods: list[dict[str, str]] = []
-        self.dependency_mods_counter: int = 0
+    modpack_config: dict[str, Any]
+    id_slug_map: dict[str, str]
+    visited_mod_ids: set[str] = field(default_factory=set, repr=False)
+    full_modlist: list[dict[str, str]] = field(default_factory=list)
+    failed_mods: list[dict[str, str]] = field(default_factory=list)
+    dependency_mods_counter: int = field(default=0)
 
 
 def configure_settings(config: dict[str, Any]):
@@ -54,7 +54,7 @@ def configure_settings(config: dict[str, Any]):
         """
         api_url = "https://api.modrinth.com/v2/tag/game_version"
         data = requests.get(
-            api_url, timeout=const.API_TIMEOUT
+            api_url, timeout=const.API_TIMEOUT, headers={"User-Agent": const.USER_AGENT}
         ).json()  # pretty much guaranteed to be 200
         minecraft_versions = [
             version["version"]
@@ -254,7 +254,8 @@ def main_menu(current_config, json_modlist_data) -> tuple[list[str], dict]:
             case "cancel":  # cancel
                 exit(0)
 
-        mods_in_category = json_modlist_data.get(json_key, [])
+        mods_in_category: list[dict[str, str]] = json_modlist_data.get(json_key, [])
+        modvalues_in_category: set[str] = {mod["value"] for mod in mods_in_category}
 
         mod_choices = [
             {
@@ -266,18 +267,16 @@ def main_menu(current_config, json_modlist_data) -> tuple[list[str], dict]:
         ]
 
         selection = questionary.checkbox(
-            message=f"Select mods from {category_choice}", choices=mod_choices
+            message=f"Choose mods from {category_choice}", choices=mod_choices
         ).ask()
 
-        # dont know how this works but it does, dont touch it
-        # it only stores the value of the mod, and puts it in the initial modlist,
-        # removes the name property and checked property
-
+        # for every mod in everything the user has selected so far,
+        # remove every mod that is in the category that the user is in
         initial_modlist = [
-            mod
-            for mod in initial_modlist
-            if mod not in [mod.get("value") for mod in mods_in_category]
+            mod for mod in initial_modlist if mod not in modvalues_in_category
         ]
+        # then readd it back using this
+        # this is to avoid duplicates and allow for deletion
         if selection is not None:
             initial_modlist += selection
 
@@ -297,12 +296,18 @@ def slug_to_id(target_slug: str, id_slug_map: dict[str, str]) -> str:
         (id for id, slug in id_slug_map.items() if slug == target_slug),
     )
     if id is None:
-        print("yeah so the slug_to_id function mightve broken", style="error")
+        print(
+            "yeah so the slug_to_id function mightve broken or there was no id",
+            style="error",
+        )
     return id
 
 
 def get_mods(
-    slugorid: str, api_session, download_context, is_dependency=False
+    slugorid: str,
+    api_session: requests.Session,
+    download_context: DownloadContext,
+    is_dependency=False,
 ) -> list[dict[str, str]]:
     """gets the mods from initial modlist, puts them in modrinth api to get the mods download url and filename
     for the download section. also checks the mod for any required dependencies and downloads them recursively.
@@ -468,7 +473,93 @@ def clear_jar_files(directory_path: str) -> None:
             print(f"Could not remove {file}: {error}", style="error")
 
 
-def download_mods(modlist: list[dict[str, str]], api_session, download_context) -> None:
+def get_download_folder_path() -> Path:
+    """finds the folder path of the modpack by asking questions using questionary
+
+    Returns:
+        str: folder path
+    """
+    # finding the folder path (changes depending the mc launcher they use)
+    # redefining APPDATA_FILEPATH for this func only
+    APPDATA_FILEPATH = Path(os.getenv("APPDATA", Path.home() / "AppData" / "Roaming"))
+    folder_path_search_locations: dict[str, Path] = {
+        "Minecraft Launcher": APPDATA_FILEPATH / ".minecraft" / "modpacks",
+        "Prism Launcher": APPDATA_FILEPATH / "PrismLauncher" / "instances",
+        "Lunar Client": Path.home() / ".lunarclient" / "offline" / "multiver",
+        "Feather Client": APPDATA_FILEPATH / ".feather" / "instances",
+        "CurseForge": Path.home() / "curseforge" / "minecraft" / "instances",
+    }
+    launcher_choices: list[str] = [
+        location
+        for location, folderpath in folder_path_search_locations.items()
+        if folderpath.exists()
+    ]
+
+    # if any of the filepaths in folder_path_search_locations doesnt exist
+    if not launcher_choices:
+        return enter_manual_path(
+            "Could not find a modpacks folder location, please manually enter a path where mods will be downloaded:"
+        )
+
+    # make them choose the launcher/path they want
+    if len(launcher_choices) > 1:
+        launcher_choice = questionary.select(
+            "Which launcher do you want to use to download the mods?",
+            choices=launcher_choices + [questionary.Separator(), "Create Manual Path"],
+        ).ask()
+    else:
+        launcher_choice = launcher_choices[0]
+    if launcher_choice == "Create Manual Path":
+        return enter_manual_path("Please enter a path where mods will be downloaded:")
+    selected_path = folder_path_search_locations[launcher_choice]
+
+    # checking if there are any modpack folders inside
+    directories = [folder.name for folder in selected_path.iterdir() if folder.is_dir()]
+    # if there are
+    if directories:
+        modpack_choice = questionary.select(
+            "Which modpack do you want your mods to be downloaded in?",
+            choices=directories
+            + [questionary.Separator(), "Create New Modpack Folder"],
+        ).ask()
+        if modpack_choice == "Create New Modpack Folder":
+            modpack_name = questionary.text(
+                "What should the name of the new modpack be?"
+            ).ask()
+            return selected_path / modpack_name / "mods"
+        return selected_path / modpack_choice / "mods"
+
+    # if there werent, then create a new folder (name provided by user)
+    modpack_name = questionary.text("What should the name of the new modpack be?").ask()
+    return selected_path / modpack_name / "mods"
+
+
+def enter_manual_path(prompt: str) -> Path:
+    """this function forces the user to enter a manual path, this is usually only used in
+    get_download_folder_path()
+
+    Args:
+        prompt (str): the prompt the user gets when asked to enter a path via questionary.path manually
+
+    Returns:
+        Path: The path object returned by this function
+    """
+    # not really a warning but i think yellow fits here so
+    print(
+        "Tip: You can copy and paste the path from the file explorer search bar",
+        style="warning",
+    )
+    folder_path = questionary.path(
+        prompt,
+    ).ask()
+    return Path(folder_path)
+
+
+def download_mods(
+    modlist: list[dict[str, str]],
+    api_session: requests.Session,
+    download_context: DownloadContext,
+) -> None:
     """downloads the mods in the modlist using the api, also has progress bars, top one is the main one
     where it tracks how many mods have been downloaded, and the other ones are sub-progress bars where it
     shows how much of the mods file contents have been downloaded
@@ -477,92 +568,12 @@ def download_mods(modlist: list[dict[str, str]], api_session, download_context) 
         api_session: dont worry about it, its just the api session
     """
 
-    def get_folder_path() -> Path:
-        """finds the folder path of the modpack by asking questions using questionary
-
-        Returns:
-            str: folder path
-        """
-        # finding the folder path (changes depending the mc launcher they use)
-        # redefining APPDATA_FILEPATH for this func only
-        APPDATA_FILEPATH = Path(
-            os.getenv("APPDATA", Path.home() / "AppData" / "Roaming")
-        )
-        folder_path_search_locations: dict[str, Path] = {
-            "Minecraft Launcher": APPDATA_FILEPATH / ".minecraft" / "modpacks",
-            "Prism Launcher": APPDATA_FILEPATH / "PrismLauncher" / "instances",
-            "Lunar Client": Path.home() / ".lunarclient" / "offline" / "multiver",
-            "Feather Client": APPDATA_FILEPATH / ".feather" / "instances",
-            "CurseForge": Path.home() / "curseforge" / "minecraft" / "instances",
-        }
-        launcher_choices: list[str] = [
-            location
-            for location, folderpath in folder_path_search_locations.items()
-            if folderpath.exists()
-        ]
-
-        # if any of the filepaths in folder_path_search_locations doesnt exist
-        if not launcher_choices:
-            # not really a warning but i think yellow fits here so
-            print(
-                "Tip: You can copy and paste the path from the file explorer search bar",
-                style="warning",
-            )
-            folder_path = questionary.path(
-                "Could not find a modpacks folder location, please manually enter a path where mods will be downloaded:",
-            ).ask()
-            return folder_path
-
-        # make them choose the launcher/path they want
-        if len(launcher_choices) > 1:
-            launcher_choice = questionary.select(
-                "Which launcher do you want to use to download the mods?",
-                choices=launcher_choices
-                + [questionary.Separator(), "Create Manual Path"],
-            ).ask()
-        else:
-            launcher_choice = launcher_choices[0]
-        if launcher_choice == "Create Manual Path":
-            print(
-                "Tip: You can copy and paste the path from the file explorer search bar",
-                style="warning",
-            )
-            folder_path = questionary.path(
-                "Please enter a path where mods will be downloaded:",
-            ).ask()
-            return folder_path
-        selected_path = folder_path_search_locations[launcher_choice]
-
-        # checking if there are any modpack folders inside
-        directories = [
-            folder.name for folder in selected_path.iterdir() if folder.is_dir()
-        ]
-        # if there are
-        if directories:
-            modpack_choice = questionary.select(
-                "Which modpack do you want your mods to be downloaded in?",
-                choices=directories
-                + [questionary.Separator(), "Create New Modpack Folder"],
-            ).ask()
-            if modpack_choice == "Create New Modpack Folder":
-                modpack_name = questionary.text(
-                    "What should the name of the new modpack be?"
-                ).ask()
-                return selected_path / modpack_name / "mods"
-            return selected_path / modpack_choice / "mods"
-
-        # if there werent, then create a new folder (name provided by user)
-        modpack_name = questionary.text(
-            "What should the name of the new modpack be?"
-        ).ask()
-        return selected_path / modpack_name / "mods"
-
     # getting folder path for downloading
     if download_context.modpack_config.get("mods_directory"):
         folder_path = download_context.modpack_config["mods_directory"]
     else:
         while True:
-            folder_path = get_folder_path()
+            folder_path = get_download_folder_path()
             if not folder_path:
                 print(
                     "Folder path was empty so we are sending you right back to the selection prompts",
@@ -588,12 +599,16 @@ def download_mods(modlist: list[dict[str, str]], api_session, download_context) 
             print("Everything cleared.", style="success")
 
     # actually downloading mods (with progress bar)
+
+    # the making of the progress bar (this is for mods_downloaded/total mods)
     main_progress = Progress(
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
         TaskProgressColumn(),
         MofNCompleteColumn(),
     )
+
+    # the mods itself
     mods_downloaded = main_progress.add_task("Downloading Mods...", total=len(modlist))
     mod_download_progress = Progress(
         TextColumn("[progress.description]{task.description}"),
@@ -604,7 +619,7 @@ def download_mods(modlist: list[dict[str, str]], api_session, download_context) 
     progress_group = Group(main_progress, mod_download_progress)
     with Live(progress_group, refresh_per_second=10):
 
-        def download_one_mod(target_mod):
+        def download_one_mod(target_mod) -> None:
             """just so the threadpoolexecutor works well so the async nature works
             basically it takes one mod from the full_modlist and downloads it"""
             download_path = os.path.join(folder_path, target_mod.get("filename"))
@@ -623,13 +638,13 @@ def download_mods(modlist: list[dict[str, str]], api_session, download_context) 
             )
             with open(download_path, "wb") as file:
                 for chunk in response.iter_content(
-                    chunk_size=8192
+                    chunk_size=const.CHUNK_SIZE
                 ):  # idk what tf this does but it works according to google so
                     file.write(chunk)
                     mod_download_progress.update(
                         mod_downloading_progress_id, advance=len(chunk)
                     )
-
+            # updating the progress bars and removing the mod progress bar (mod finished downloading)
             main_progress.update(mods_downloaded, advance=1)
             mod_download_progress.remove_task(mod_downloading_progress_id)
 
@@ -637,7 +652,8 @@ def download_mods(modlist: list[dict[str, str]], api_session, download_context) 
             executor.map(download_one_mod, modlist)
 
 
-def main():
+def main() -> None:
+    # getting the json files
     mods_json, id_slug_map, modpack_config = builder.main()
     # now the program starts
     initial_modlist, config_update = main_menu(modpack_config, mods_json)
@@ -645,6 +661,7 @@ def main():
     # session so the tcp connection doesnt reset
     download_context = DownloadContext(modpack_config, id_slug_map)
     with requests.Session() as api_session:
+        api_session.headers.update({"User-Agent": const.USER_AGENT})
         # threadpoolexecutor to allow multiple thread execution (async pretty much)
         with ThreadPoolExecutor() as executor:
             results = executor.map(
@@ -663,7 +680,7 @@ def main():
                 f"{len(download_context.failed_mods)} mods failed to download: {download_context.failed_mods}",
                 style="error",
             )
-        input("")
+        input("Press Enter to Exit")
 
 
 if __name__ == "__main__":

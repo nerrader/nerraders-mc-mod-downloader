@@ -3,37 +3,18 @@ from os import makedirs
 import json
 from sys import exit
 import constants as const
+from typing import Any
 
 # global constants
 print = const.CONSOLE.print
 
-# APPDATA_FILEPATH is where program stores json files
+# MAIN_DATA_FILEPATH is where program stores json files
 
 
-def is_modrinth_up() -> bool:
-    """checks if your internet connection is up and if modrinth api servers are down, if not allows
-    you access to the rest of the program
-
-    Returns:
-        bool: True if you have sufficient internet connection and modrinth servers arent down, else False
-        True: allow continuation of the builder.py process
-        False: immediately exit the program
-    """
-    try:
-        staging_api_url = "https://staging-api.modrinth.com"
-        response = requests.get(staging_api_url, timeout=const.API_TIMEOUT)
-        response.raise_for_status()
-        return True
-    except Exception:
-        print(
-            "There was a problem connecting to Modrinth API Servers",
-            style="error",
-        )
-        return False
-
-
-def get_mods_json() -> bool:
+def get_mods_json(api_session) -> bool:
     """grabs the mods.json from my github repo, and puts it in mods.json (locally on appdata/roaming)
+    also uses mods.etag to check if it is already up to date, removing the need to actually like save it
+    every time the app launches
 
     Raises:
         requests.exceptions.HTTPError: If response.status_code is not 200 (success) or 304 (mods.json using latest version),
@@ -42,12 +23,12 @@ def get_mods_json() -> bool:
     Returns:
         bool: it determines whether the slugsidmap.json gets should updated or not (aka if slugidmap() gets called or not)
     """
-    etag_filepath = const.APPDATA_FILEPATH / "mods.etag"
+    etag_filepath = const.MAIN_DATA_FILEPATH / "mods.etag"
     mods_url = "https://raw.githubusercontent.com/nerrader/nerraders-mc-mod-downloader/refs/heads/main/data/mods.json"
     api_headers = {}
     if etag_filepath.exists():
         api_headers["If-None-Match"] = etag_filepath.read_text().strip()
-    response = requests.get(mods_url, headers=api_headers, timeout=const.API_TIMEOUT)
+    response = api_session.get(mods_url, headers=api_headers, timeout=const.API_TIMEOUT)
     if response.status_code == 304:
         print("mods.json is already on the latest version.")
         return False
@@ -60,8 +41,7 @@ def get_mods_json() -> bool:
     with open(const.MODS_FILEPATH, "w") as file:
         json.dump(data, file, indent=4)
     if "ETag" in response.headers:
-        with open(etag_filepath, "w") as file:
-            etag_filepath.write_text(response.headers["ETag"])
+        etag_filepath.write_text(response.headers["ETag"])
     print("Successfully made mods.json")
     return True
 
@@ -86,42 +66,50 @@ def get_slugslist() -> list[str]:  # only slugs, no ids
         return slugslist
 
 
-def modify_slugsmap(slugslist: list[str]) -> None:
+def modify_slugsmap(slugslist: list[str], api_session) -> None:
     """Summary:
     From the list of slugs given, use the modrinth API to find the IDs for each slug,
-    then put it in a dictionary (id: slug), then saves it to a file called idslugmap.json (locally in appdata)
+    then put it in a dictionary (id: slug), then saves it to a file called id_slug_map.json (locally in appdata)
 
-    idslugmap.json will be used to convert slugs into ids and vice versa in main.py
+    id_slug_map.json will be used to convert slugs into ids and vice versa in main.py
 
     Args:
         slugslist (list[str]): The list of slugs that will be needed to find the IDs of each, usually from
         getslugslist()
     """
-    idslugmap: dict = {}
+    id_slug_map: dict = {}
     API_URL = "https://api.modrinth.com/v2/projects"
     api_params = {"ids": json.dumps(slugslist)}
-    response = requests.get(API_URL, params=api_params, timeout=const.API_TIMEOUT)
+    response = api_session.get(API_URL, params=api_params, timeout=const.API_TIMEOUT)
     response.raise_for_status()
     data = response.json()
-    for mod in data:
-        idslugmap[mod["id"]] = mod["slug"]  # for mod in data
+    id_slug_map = {mod["id"]: mod["slug"] for mod in data}
     with open(const.IDSLUGMAP_FILEPATH, "w") as file:
-        json.dump(idslugmap, file, indent=4)
+        json.dump(id_slug_map, file, indent=4)
     print("Successfully made idslugmap.json")
 
 
-def get_slugsidmap() -> None:
+def get_slugsidmap(api_session) -> None:
     """combines two functions, to make a single function which handles the entire slugidmap creation"""
-    modify_slugsmap(get_slugslist())
+    modify_slugsmap(get_slugslist(), api_session)
 
 
-def get_default_config() -> dict:
-    """it generates a default config for those who dont have a config.json yet
-    then saves them into config.json"""
+def get_default_config(api_session=None) -> dict:
+    """it generates a default config for those who dont have a config.json yet,
+
+    params:
+    api_session: a requests.Session object which is used to optimize performance, if none is
+    given, use the regular requests.get() function
+
+    returns:
+    dict: the default_config returned, usually passed into save_config() to save it
+
+    uses modrinth api to get the latest minecraft version for the version property"""
     api_url = "https://api.modrinth.com/v2/tag/game_version"
-    data = requests.get(
-        api_url, timeout=const.API_TIMEOUT
-    ).json()  # pretty much guaranteed to succeed unless bad internet or server crash
+    requests_session = api_session or requests
+    headers = {"User-Agent": const.USER_AGENT} if not api_session else None
+    data = requests_session.get(api_url, timeout=const.API_TIMEOUT, headers=headers)
+    # pretty much guaranteed to succeed unless bad internet or server crash, so no try except
     minecraft_versions = [
         version["version"] for version in data if version["version_type"] == "release"
     ]
@@ -146,54 +134,63 @@ def save_config(config: dict) -> None:
         config (dict): the config that you want to save
     """
     with open(const.CONFIG_FILEPATH, "w") as file:
-        file.dump(config)
+        json.dump(config, file, indent=4)
 
 
-def main() -> tuple[dict]:
-    if not is_modrinth_up():
-        print(
-            "either your internet connection is down, or modrinth servers arent up. try again next time",
-            style="error",
-        )
-        input("")
-        exit(0)
+def main() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
 
-    makedirs(const.APPDATA_FILEPATH, exist_ok=True)
+    makedirs(const.MAIN_DATA_FILEPATH, exist_ok=True)
     # checks if config.json is real
-    try:
-        with open(const.CONFIG_FILEPATH) as file:
-            json.load(file)  # will raise an error if empty, and also if doesnt exist
-    except (json.JSONDecodeError, FileNotFoundError):
-        print("Could not load config.json, setting to defaults")
-        save_config(get_default_config())
+    with requests.Session() as session:
+        session.headers.update({"User-Agent": const.USER_AGENT})
+        while True:
+            # config.json checkup
+            try:
+                with open(const.CONFIG_FILEPATH) as file:
+                    json.load(
+                        file
+                    )  # will raise an error if empty, and also if doesnt exist
+            except (json.JSONDecodeError, FileNotFoundError):
+                print("Could not load config.json, setting to defaults")
+                save_config(get_default_config(session))
 
-    try:
-        should_update_idslugmap = (
-            get_mods_json()
-        )  # returns true if needs to be updated, false otherwise
+            # idslugmap.json checkup, should update or not
+            try:
+                should_update_idslugmap = get_mods_json(
+                    session
+                )  # returns true if needs to be updated, false otherwise
 
-        if should_update_idslugmap or not const.IDSLUGMAP_FILEPATH.exists():
-            get_slugsidmap()
+                if should_update_idslugmap or not const.IDSLUGMAP_FILEPATH.exists():
+                    get_slugsidmap(session)
+            except requests.exceptions.HTTPError as error:
+                print(f"Critical Error: {error}", style="error")
+                input("the app cannot continue, press enter to exit")
+                exit(1)
+            except requests.exceptions.ConnectionError:
+                print(
+                    "buddy get a proper internet connection before using this app buddy",
+                    style="error",
+                )
+                input("now go press enter to exit")
+                exit(1)
 
-    except requests.exceptions.HTTPError as error:
-        print(f"Critical Error: {error}")
-        exit(1)
-
-    # loading the file contents here cuz why not
-    try:
-        with open(const.CONFIG_FILEPATH) as file:
-            config_json = json.load(file)
-        with open(const.IDSLUGMAP_FILEPATH) as file:
-            id_slug_map_json = json.load(file)
-        with open(const.MODS_FILEPATH) as file:
-            mods_json = json.load(file)
-        return (mods_json, id_slug_map_json, config_json)
-    except Exception as error:
-        print(f"Something happened: {error}, resetting files to defaults")
-        save_config(get_default_config())
-        get_mods_json()
-        get_slugsidmap()
-        return main()
+            # loading the file contents for returning
+            try:
+                with (
+                    open(const.CONFIG_FILEPATH) as config_json,
+                    open(const.IDSLUGMAP_FILEPATH) as idslugmap_json,
+                    open(const.MODS_FILEPATH) as mods_json,
+                ):
+                    return (
+                        json.load(mods_json),
+                        json.load(idslugmap_json),
+                        json.load(config_json),
+                    )
+            except Exception as error:
+                print(f"Something happened: {error}, resetting files to defaults")
+                save_config(get_default_config(session))
+                get_mods_json(session)
+                get_slugsidmap(session)
 
 
 if __name__ == "__main__":
