@@ -2,7 +2,7 @@ import requests
 from os import makedirs
 import json
 from sys import exit
-import constants as const
+from . import constants as const
 from typing import Any
 
 # global constants
@@ -108,7 +108,9 @@ def get_default_config(api_session=None) -> dict:
     api_url = "https://api.modrinth.com/v2/tag/game_version"
     requests_session = api_session or requests
     headers = {"User-Agent": const.USER_AGENT} if not api_session else None
-    data = requests_session.get(api_url, timeout=const.API_TIMEOUT, headers=headers)
+    data = requests_session.get(
+        api_url, timeout=const.API_TIMEOUT, headers=headers
+    ).json()
     # pretty much guaranteed to succeed unless bad internet or server crash, so no try except
     minecraft_versions = [
         version["version"] for version in data if version["version_type"] == "release"
@@ -150,7 +152,7 @@ def main() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
                     json.load(
                         file
                     )  # will raise an error if empty, and also if doesnt exist
-            except (json.JSONDecodeError, FileNotFoundError):
+            except json.JSONDecodeError, FileNotFoundError:
                 print("Could not load config.json, setting to defaults")
                 save_config(get_default_config(session))
 
