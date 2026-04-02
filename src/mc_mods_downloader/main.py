@@ -13,16 +13,17 @@ from rich.progress import (
     MofNCompleteColumn,
 )
 from rich.live import Live
+from rich.table import Table
 from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
 # project initialization module (my own one)
-import builder
+from . import builder
 
 # global variables initialization, global variables (constants) have to start with const.
-import constants as const
+from . import constants as const
 
 # overriding default print with rich print
 print = const.CONSOLE.print
@@ -143,8 +144,8 @@ def configure_settings(config: dict[str, Any]):
                     value="auto_clear_jars",
                 ),
                 questionary.Choice(
-                    title=f"Show Detailed Logs [{new_behaviour_settings['show_deatiled_logs']}]",
-                    value="show_deatiled_logs",
+                    title=f"Show Detailed Logs [{new_behaviour_settings['show_detailed_logs']}]",
+                    value="show_detailed_logs",
                 ),
                 questionary.Choice(title="Go Back", value="back"),
             )
@@ -358,19 +359,11 @@ def get_mods(
     response = api_session.get(api_url, params=api_params, timeout=const.API_TIMEOUT)
     data = response.json()
     if response.status_code != 200:
-        print(
-            f"Something wrong happened, status code: {response.status_code}",
-            style="error",
-        )
         download_context.failed_mods.append(
             {"slug": slug, "cause": f"status code {response.status_code}"}
         )
         return []
     elif len(data) == 0:
-        print(
-            f"No files for fabric game version {version} found in mod {slug}",
-            style="error",
-        )
         download_context.failed_mods.append(
             {"slug": slug, "cause": f"no files for version {version}"}
         )
@@ -383,9 +376,6 @@ def get_mods(
     ]
 
     if not latest_version:
-        print(
-            f"Mod {slug} has no versions with {valid_versions} releases", style="error"
-        )
         download_context.failed_mods.append(
             {"slug": slug, "cause": f"mod doesnt have any {valid_versions} releases"}
         )
@@ -400,10 +390,6 @@ def get_mods(
     target_url = target_file["url"]
 
     if not target_filename or not target_url:
-        print(
-            f"somethings up with the latest version url and filename of mod {slug}",
-            style="error",
-        )
         download_context.failed_mods.append(
             {"slug": slug, "cause": "the url and filename doesnt exist for some reason"}
         )
@@ -435,7 +421,6 @@ def get_mods(
     ]
     for dependency in dependencies:
         try:
-            download_context.dependency_mods_counter += 1
             dependency_project_id: str = dependency.get("project_id")
             if dependency_project_id not in download_context.visited_mod_ids:
                 new_dependency = get_mods(
@@ -445,6 +430,7 @@ def get_mods(
                     is_dependency=True,
                 )
                 collected_mods.extend(new_dependency)
+                download_context.dependency_mods_counter += 1
 
         except Exception as error:
             print(
@@ -588,7 +574,10 @@ def download_mods(
                 break
 
     # clear files first before downloading or not
-    if download_context.modpack_config.get("auto_clear_jars"):
+    should_clear_folders: bool = download_context.modpack_config[
+        "behaviour_settings"
+    ].get("auto_clear_jars")
+    if should_clear_folders:
         clear_jar_files(folder_path)
     else:
         clear_folder = questionary.confirm(
@@ -652,6 +641,26 @@ def download_mods(
             executor.map(download_one_mod, modlist)
 
 
+def get_download_summary(download_context: DownloadContext) -> None:
+    print(
+        f"\n[green]{len(download_context.full_modlist)} mods downloaded![/green] ({download_context.dependency_mods_counter} of which were dependencies)"
+    )
+    if len(download_context.failed_mods) > 0:
+        failed_mods_table = Table(
+            title="Failed Mods", show_header=True, header_style="bold red"
+        )
+        failed_mods_table.add_column("Mod Slug")
+        failed_mods_table.add_column("Cause of Failure", style="red")
+
+        for mod in download_context.failed_mods:
+            failed_mods_table.add_row(
+                mod.get("slug", "Unknown"), mod.get("cause", "Unknown")
+            )
+        print("")
+        print(failed_mods_table)  # newlines to make it look better overall
+        print("")
+
+
 def main() -> None:
     # getting the json files
     mods_json, id_slug_map, modpack_config = builder.main()
@@ -672,14 +681,7 @@ def main() -> None:
                 if mod_data is not None:
                     download_context.full_modlist.extend(mod_data)
         download_mods(download_context.full_modlist, api_session, download_context)
-        print(
-            f"\n[green]{len(download_context.full_modlist)} mods downloaded![/green] ({download_context.dependency_mods_counter} of which were dependencies)"
-        )
-        if len(download_context.failed_mods) > 0:
-            print(
-                f"{len(download_context.failed_mods)} mods failed to download: {download_context.failed_mods}",
-                style="error",
-            )
+        get_download_summary(download_context)
         input("Press Enter to Exit")
 
 
@@ -687,5 +689,7 @@ if __name__ == "__main__":
     main()
 
 # - more mods (if mods are too much ill figure out a way to better find mods and stuff)
-# - better error handling
-# - code polish
+# - refactor main() maybe, get_mods(), and main_menu()
+
+# for v4.0.0
+# make everything async, use asyncio, and replace threadpoolexecutor with that
