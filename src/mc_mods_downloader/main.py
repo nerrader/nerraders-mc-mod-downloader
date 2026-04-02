@@ -459,13 +459,18 @@ def clear_jar_files(directory_path: str) -> None:
             print(f"Could not remove {file}: {error}", style="error")
 
 
-def get_download_folder_path() -> Path:
-    """finds the folder path of the modpack by asking questions using questionary
+def _get_selected_launcher_path() -> tuple[Path, bool]:
+    """WARNING: THIS FUNCITON IS ONLY MEANT TO BE USED IN get_download_folder_path()!!!!!
 
-    Returns:
-        str: folder path
+    basically this function sees which launcher the user has, makes the user select one
+    (unless only one potential launcher path is found)
+
+    then based off the folder_path_search locations dict, find the folder path for the launcher
+    the user selected, and return it.
+    Returns: (things wrapped in the tuple)
+        Path: The launcher path selected by the user
+        bool: Whether the user created a manual path
     """
-    # finding the folder path (changes depending the mc launcher they use)
     # redefining APPDATA_FILEPATH for this func only
     APPDATA_FILEPATH = Path(os.getenv("APPDATA", Path.home() / "AppData" / "Roaming"))
     folder_path_search_locations: dict[str, Path] = {
@@ -483,8 +488,11 @@ def get_download_folder_path() -> Path:
 
     # if any of the filepaths in folder_path_search_locations doesnt exist
     if not launcher_choices:
-        return enter_manual_path(
-            "Could not find a modpacks folder location, please manually enter a path where mods will be downloaded:"
+        return (
+            enter_manual_path(
+                "Could not find a modpacks folder location, please manually enter a path where mods will be downloaded:"
+            ),
+            True,
         )
 
     # make them choose the launcher/path they want
@@ -493,31 +501,79 @@ def get_download_folder_path() -> Path:
             "Which launcher do you want to use to download the mods?",
             choices=launcher_choices + [questionary.Separator(), "Create Manual Path"],
         ).ask()
+        if launcher_choice == "Create Manual Path":
+            return (
+                enter_manual_path("Please enter a path where mods will be downloaded:"),
+                True,
+            )
     else:
         launcher_choice = launcher_choices[0]
-    if launcher_choice == "Create Manual Path":
-        return enter_manual_path("Please enter a path where mods will be downloaded:")
-    selected_path = folder_path_search_locations[launcher_choice]
+
+    launcher_path = folder_path_search_locations[launcher_choice]
+    return (launcher_path, False)
+
+
+def _get_modpack_folder(launcher_path: Path) -> Path:
+    """WARNING: THIS FUNCITON IS ONLY MEANT TO BE USED IN get_download_folder_path()!!!!!
+
+    Args:
+        launcher_path (Path): launcher path given by the other helper function, _get_selected_launcher_path()
+
+    Returns:
+        Path: the selected modpack folderpath
+    """
+    directories = [folder.name for folder in launcher_path.iterdir() if folder.is_dir()]
+
+    if not directories:
+        modpack_name = questionary.text(
+            "What should the name of the new modpack be?"
+        ).ask()
+        return launcher_path / modpack_name / "mods"
+
+    modpack_choice = questionary.select(
+        "Which modpack do you want your mods to be downloaded in?",
+        choices=directories + [questionary.Separator(), "Create New Modpack Folder"],
+    ).ask()
+    if modpack_choice != "Create New Modpack Folder":
+        return launcher_path / modpack_choice / "mods"
+    modpack_name = questionary.text("What should the name of the new modpack be?").ask()
+    return launcher_path / modpack_name / "mods"
+
+
+def get_download_folder_path(download_context: DownloadContext) -> Path:
+    """finds the folder path of the modpack by using two other helper functions,
+    _get_selected_launcher_path() and _get_modpack_folder(),
+    if user has default path in config.json, it uses that instead and skips the prompts
+
+    also asks the user a confirm prompt to confirm the folder path they selected, if so, return folder path
+    Returns:
+        str: folder path
+    """
+    # checks if they already have a default path in their settings/config.json
+    if download_context.modpack_config.get("mods_directory"):  # if not empty
+        return download_context.modpack_config["mods_directory"]
+
+    while True:
+        launcher_path, is_manual_path = _get_selected_launcher_path()
+        if is_manual_path:
+            modpack_folderpath = launcher_path
+        else:
+            modpack_folderpath = _get_modpack_folder(launcher_path)
+        # getting folder path for downloading
+        if not modpack_folderpath:
+            print(
+                "Folder path was empty so we are sending you right back to the selection prompts",
+                style="error",
+            )
+            continue
+        confirm_folderpath = questionary.confirm(
+            f"Is ({modpack_folderpath}) the correct filepath?"
+        ).ask()
+        if confirm_folderpath:
+            break
+    return modpack_folderpath
 
     # checking if there are any modpack folders inside
-    directories = [folder.name for folder in selected_path.iterdir() if folder.is_dir()]
-    # if there are
-    if directories:
-        modpack_choice = questionary.select(
-            "Which modpack do you want your mods to be downloaded in?",
-            choices=directories
-            + [questionary.Separator(), "Create New Modpack Folder"],
-        ).ask()
-        if modpack_choice == "Create New Modpack Folder":
-            modpack_name = questionary.text(
-                "What should the name of the new modpack be?"
-            ).ask()
-            return selected_path / modpack_name / "mods"
-        return selected_path / modpack_choice / "mods"
-
-    # if there werent, then create a new folder (name provided by user)
-    modpack_name = questionary.text("What should the name of the new modpack be?").ask()
-    return selected_path / modpack_name / "mods"
 
 
 def enter_manual_path(prompt: str) -> Path:
@@ -554,37 +610,20 @@ def download_mods(
         api_session: dont worry about it, its just the api session
     """
 
-    # getting folder path for downloading
-    if download_context.modpack_config.get("mods_directory"):
-        folder_path = download_context.modpack_config["mods_directory"]
-    else:
-        while True:
-            folder_path = get_download_folder_path()
-            if not folder_path:
-                print(
-                    "Folder path was empty so we are sending you right back to the selection prompts",
-                    style="error",
-                )
-                continue
-            confirm_folderpath = questionary.confirm(
-                f"Is ({folder_path}) the correct filepath?"
-            ).ask()
-            if confirm_folderpath:
-                os.makedirs(folder_path, exist_ok=True)
-                break
-
     # clear files first before downloading or not
+    modpack_folderpath = get_download_folder_path(download_context)
+    os.makedirs(modpack_folderpath, exist_ok=True)
     should_clear_folders: bool = download_context.modpack_config[
         "behaviour_settings"
     ].get("auto_clear_jars")
     if should_clear_folders:
-        clear_jar_files(folder_path)
+        clear_jar_files(modpack_folderpath)
     else:
         clear_folder = questionary.confirm(
             "Should we delete all .jar files in the minecraft mods folder path to remove duplicates? (RECOMMENDED)"
         ).ask()
         if clear_folder:
-            clear_jar_files(folder_path)
+            clear_jar_files(modpack_folderpath)
             print("Everything cleared.", style="success")
 
     # actually downloading mods (with progress bar)
@@ -611,7 +650,7 @@ def download_mods(
         def download_one_mod(target_mod) -> None:
             """just so the threadpoolexecutor works well so the async nature works
             basically it takes one mod from the full_modlist and downloads it"""
-            download_path = os.path.join(folder_path, target_mod.get("filename"))
+            download_path = os.path.join(modpack_folderpath, target_mod.get("filename"))
             url = target_mod.get("url")
             if not url:
                 print(f"{target_mod} has no url!")
