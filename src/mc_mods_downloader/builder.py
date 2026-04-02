@@ -139,6 +139,44 @@ def save_config(config: dict) -> None:
         json.dump(config, file, indent=4)
 
 
+def checkup_files(api_session: requests.Session) -> None:
+    """checks up on the config and idslugmap json files, resets them to defaults if somethings wrong
+    updates the idslugmap.json if mods.json is updated/changed
+
+    Args:
+        api_session (requests.Session): The API session object, used to pass into the functions used in this function
+        that do need an api session
+
+        (technically none of these do, but it does optimize performance)
+    """
+    # config.json checkup
+    try:
+        with open(const.CONFIG_FILEPATH) as file:
+            json.load(file)  # will raise an error if empty, and also if doesnt exist
+    except (json.JSONDecodeError, FileNotFoundError):
+        print("Could not load config.json, setting to defaults")
+        save_config(get_default_config(api_session))
+
+    # idslugmap.json checkup, should update or not
+    try:
+        should_update_idslugmap = get_mods_json(
+            api_session
+        )  # returns true if needs to be updated, false otherwise
+
+        if should_update_idslugmap or not const.IDSLUGMAP_FILEPATH.exists():
+            get_slugsidmap(api_session)
+    except requests.exceptions.RequestException as error:
+        print(f"Critical Error: {error}", style="error")
+        print(
+            "This was either caused due to an HTTP error (server) or a connection error (cilent)",
+            style="error",
+        )
+        input("Press Enter to Exit")
+        raise SystemExit(
+            "The app cannot continue due to the above error, exiting now"
+        ) from error
+
+
 def main() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
 
     makedirs(const.MAIN_DATA_FILEPATH, exist_ok=True)
@@ -146,36 +184,7 @@ def main() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     with requests.Session() as session:
         session.headers.update({"User-Agent": const.USER_AGENT})
         while True:
-            # config.json checkup
-            try:
-                with open(const.CONFIG_FILEPATH) as file:
-                    json.load(
-                        file
-                    )  # will raise an error if empty, and also if doesnt exist
-            except json.JSONDecodeError, FileNotFoundError:
-                print("Could not load config.json, setting to defaults")
-                save_config(get_default_config(session))
-
-            # idslugmap.json checkup, should update or not
-            try:
-                should_update_idslugmap = get_mods_json(
-                    session
-                )  # returns true if needs to be updated, false otherwise
-
-                if should_update_idslugmap or not const.IDSLUGMAP_FILEPATH.exists():
-                    get_slugsidmap(session)
-            except requests.exceptions.HTTPError as error:
-                print(f"Critical Error: {error}", style="error")
-                input("the app cannot continue, press enter to exit")
-                exit(1)
-            except requests.exceptions.ConnectionError:
-                print(
-                    "buddy get a proper internet connection before using this app buddy",
-                    style="error",
-                )
-                input("now go press enter to exit")
-                exit(1)
-
+            checkup_files(session)
             # loading the file contents for returning
             try:
                 with (
