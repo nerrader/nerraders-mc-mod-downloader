@@ -444,12 +444,12 @@ def get_mods(
     return collected_mods
 
 
-def clear_jar_files(directory_path: str) -> None:
+def clear_jar_files(directory_path: str | Path) -> None:
     """clears .jar files in the mod directory where they download mods
     this is to prevent duplicates and weird glitches and stuff and outdated mods
 
     Args:
-        directory_path (str): the directory path where the mods are installed
+        directory_path (str | Path): the directory path where the mods are installed
     """
     files = glob(os.path.join(directory_path, "*.jar"))
     for file in files:
@@ -727,8 +727,9 @@ def main() -> None:
 if __name__ == "__main__":
     main()
 
-# - more mods (if mods are too much ill figure out a way to better find mods and stuff)
-# - refactor main() maybe, get_mods(), and main_menu()
 
 # for v4.0.0
-# make everything async, use asyncio, and replace threadpoolexecutor with that
+# - make everything async, use asyncio, and replace threadpoolexecutor with that
+# - more mods (if mods are too much ill figure out a way to better find mods and stuff)
+# - refactor main() maybe, get_mods(), and main_menu()
+# - make the detailed_logs config actually work
