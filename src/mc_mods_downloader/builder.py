@@ -1,8 +1,7 @@
 import requests
 from os import makedirs
 import json
-from sys import exit
-from . import constants as const
+from mc_mods_downloader import constants as const
 from typing import Any
 
 # global constants

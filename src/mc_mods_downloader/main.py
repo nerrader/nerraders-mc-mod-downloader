@@ -20,10 +20,10 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
 # project initialization module (my own one)
-from . import builder
+from mc_mods_downloader import builder
 
 # global variables initialization, global variables (constants) have to start with const.
-from . import constants as const
+from mc_mods_downloader import constants as const
 
 # overriding default print with rich print
 print = const.CONSOLE.print
