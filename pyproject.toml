@@ -17,7 +17,7 @@ dependencies = [
 authors = [
     { name = "nerrader" }
 ]
-license = { text = "GPL-3.0-or-later" }
+license = "MIT"
 
 [dependency-groups]
 dev = [

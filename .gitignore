@@ -8,6 +8,7 @@ wheels/
 config.json
 idslugmap.json
 .mypy_cache/
+*.spec
 
 # Virtual environments
 .venv

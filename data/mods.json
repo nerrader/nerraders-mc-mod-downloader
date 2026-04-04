@@ -17,14 +17,16 @@
             "name": "ImmediatelyFast",
             "value": "immediatelyfast"
         },
-        { "name": "FerriteCore", "value": "ferrite-core" },
+        { "name": "[BOTH] FerriteCore", "value": "ferrite-core" },
         { "name": "ModernFix", "value": "modernfix" },
+        { "name": "Starlight", "value": "starlight" },
+        { "name": "Lazy DFU", "value": "lazydfu" },
         { "name": "Lithium", "value": "lithium" },
-        { "name": "Noisium Forked", "value": "noisiumforked" },
-        { "name": "Clumps", "value": "clumps" },
-        { "name": "Spark", "value": "spark" },
+        { "name": "[S] Noisium Forked", "value": "noisiumforked" },
+        { "name": "[S] Clumps", "value": "clumps" },
+        { "name": "[DEV] [S] Spark", "value": "spark" },
         {
-            "name": "Very Manny Players (Fabric)",
+            "name": "[MP] Very Manny Players (Fabric)",
             "value": "vmp-fabric"
         },
         { "name": "Ixeris", "value": "ixeris" },
@@ -39,7 +41,7 @@
             "name": "Language Reload",
             "value": "language-reload"
         },
-        { "name": "Krypton", "value": "krypton" },
+        { "name": "[MP] Krypton", "value": "krypton" },
         { "name": "More Culling", "value": "moreculling" }
     ],
     "pvp_mods": [
@@ -56,6 +58,10 @@
             "name": "Better Ping Display",
             "value": "better-ping-display-fabric"
         },
+        {
+            "name": "[!] Attack Through Grass",
+            "value": "attack-through-grass"
+        },
         { "name": "Bactro Mod", "value": "bactromod" }
     ],
     "misc_mods": [
@@ -64,20 +70,20 @@
             "name": "No Resource Pack Warnings",
             "value": "no-resource-pack-warnings"
         },
-        { "name": "Sit", "value": "bl4cks-sit" },
+        { "name": "[S] Sit", "value": "bl4cks-sit" },
         { "name": "Fancy Menu", "value": "fancymenu" },
         { "name": "Your Options Shall Be Respected", "value": "yosbr" }
     ],
     "building_mods": [
-        { "name": "Axiom", "value": "axiom" },
+        { "name": "[DEV] Axiom", "value": "axiom" },
         {
             "name": "Accurate Block Placement",
             "value": "accurate-block-placement-reborn"
         },
-        { "name": "Worldedit", "value": "worldedit" },
-        { "name": "Worldedit CUI", "value": "worldedit-cui" },
-        { "name": "Litematica", "value": "litematica" },
-        { "name": "Freecam", "value": "freecam" }
+        { "name": "[DEV] Worldedit", "value": "worldedit" },
+        { "name": "[DEV] Worldedit CUI", "value": "worldedit-cui" },
+        { "name": "[!] Litematica", "value": "litematica" },
+        { "name": "[!] Freecam", "value": "freecam" }
     ],
     "visual_mods": [
         { "name": "Not Enough Animations", "value": "not-enough-animations" },
@@ -98,22 +104,29 @@
         { "name": "Make Bubbles Pop", "value": "make_bubbles_pop" },
         { "name": "Explosive Enhancement", "value": "explosive-enhancement" },
         { "name": "Particular", "value": "particular" },
-        { "name": "Visual Jukebox", "value": "visual-jukebox" },
         { "name": "Particle Rain", "value": "particle-rain" },
+        { "name": "Amendments", "value": "amendments" },
         { "name": "Effective", "value": "effective" },
         { "name": "Cave Dust", "value": "cave-dust" },
         { "name": "Tiny Item Animations", "value": "tiny-item-animations" },
         { "name": "Falling Leaves", "value": "fallingleaves" },
-        { "name": "Wakes", "value": "wakes" }
+        { "name": "Eating Animation", "value": "eating-animation" },
+        { "name": "Wakes", "value": "wakes" },
+        { "name": "A Good Place", "value": "a-good-place" },
+        { "name": "Aurae", "value": "aurae" },
+        { "name": "Clean Tooltips", "value": "clean-tooltips" }
     ],
     "hud_mods": [
         { "name": "Jade", "value": "jade" },
         { "name": "Better F3", "value": "betterf3" },
         { "name": "Better Statistics Screen", "value": "better-stats" },
         { "name": "EMI", "value": "emi" },
+        { "name": "[MP] More Chat History", "value": "morechathistory" },
+        { "name": "Beautified Chat Cilent", "value": "beautified-chat-client" },
+        { "name": "Chat Patches", "value": "chatpatches" },
         { "name": "Sprint Indicator", "value": "sprint-indicator" },
-        { "name": "Xaero's Minimap", "value": "xaeros-minimap" },
-        { "name": "wWaypoints", "value": "wwaypoints" },
+        { "name": "[MP] [!] Xaero's Minimap", "value": "xaeros-minimap" },
+        { "name": "[MP] [!] wWaypoints", "value": "wwaypoints" },
         { "name": "Shulker Box Tooltip", "value": "shulkerboxtooltip" },
         { "name": "Auto HUD", "value": "autohud" },
         { "name": "Better Advancements", "value": "better-advancements" }
@@ -125,29 +138,40 @@
         },
         { "name": "Drip Sounds", "value": "dripsounds" },
         { "name": "Ambient Sounds", "value": "ambientsounds" },
+        {
+            "name": "Dynamic Surroundings",
+            "value": "dynamicsurroundingsfabric"
+        },
         { "name": "Presence Footsteps", "value": "presence-footsteps" },
+        { "name": "Door Knocking", "value": "door-knocking" },
         { "name": "Sounds", "value": "sound" },
-        { "name": "Cool Rain", "value": "coolrain" }
+        { "name": "Cool Rain", "value": "coolrain" },
+        { "name": "Auditory Continued", "value": "auditory-continued" }
     ],
     "social_mods": [
-        { "name": "No Chat Reports", "value": "no-chat-reports" },
-        { "name": "Simple Voice Chat", "value": "simple-voice-chat" },
-        { "name": "Emoji Type", "value": "emoji-type" }
+        { "name": "[MP] No Chat Reports", "value": "no-chat-reports" },
+        { "name": "[S] [MP] Simple Voice Chat", "value": "simple-voice-chat" },
+        { "name": "Emoji Type", "value": "emoji-type" },
+        { "name": "[S] [MP] What are they up to", "value": "simple-voice-chat" }
     ],
     "qol_mods": [
         { "name": "Mod Menu", "value": "modmenu" },
         { "name": "Zoomify", "value": "zoomify" },
-        { "name": "Vanilla Refresh", "value": "vanilla-refresh" },
+        { "name": "[S] Vanilla Refresh", "value": "vanilla-refresh" },
         { "name": "Controlling", "value": "controlling" },
-        { "name": "Chat Heads", "value": "chat-heads" },
-        { "name": "More Chat History", "value": "morechathistory" },
+        { "name": "[MP] Chat Heads", "value": "chat-heads" },
+        { "name": "Better Climbing", "value": "better-climbing" },
         { "name": "Resourcify", "value": "resourcify" },
+        { "name": "Easy Anvils", "value": "easy-anvils" },
+        { "name": "Easy Magic", "value": "easy-magic" },
         { "name": "Auto Sprint Fix", "value": "auto-sprint-fix" },
         { "name": "Mouse Tweaks", "value": "mouse-tweaks" },
-        { "name": "Bobby (Best Multiplayer)", "value": "bobby" },
-
+        { "name": "Cilent Tweaks", "value": "client-tweaks" },
+        { "name": "Inventory Essentials", "value": "inventory-essentials" },
+        { "name": "[S] Better than Mending", "value": "better-than-mending" },
+        { "name": "[MP] Bobby", "value": "bobby" },
         {
-            "name": "Distant Horizons (Best Singleplayer)",
+            "name": "[SP] Distant Horizons",
             "value": "distanthorizons"
         },
         {
@@ -155,7 +179,7 @@
             "value": "invmove"
         },
         {
-            "name": "Right Click Harvest",
+            "name": "[S] Right Click Harvest",
             "value": "rightclickharvest"
         }
     ],
