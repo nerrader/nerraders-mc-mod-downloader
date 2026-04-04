@@ -208,6 +208,8 @@
         "jamlib",
         "melody",
         "konkrete",
-        "mru"
+        "mru",
+        "configuration",
+        "moonlight"
     ]
 }
