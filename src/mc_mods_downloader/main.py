@@ -616,15 +616,16 @@ def download_mods(
     should_clear_folders: bool = download_context.modpack_config[
         "behaviour_settings"
     ].get("auto_clear_jars")
-    if should_clear_folders:
-        clear_jar_files(modpack_folderpath)
-    else:
-        clear_folder = questionary.confirm(
+    clear_folder = (
+        questionary.confirm(
             "Should we delete all .jar files in the minecraft mods folder path to remove duplicates? (RECOMMENDED)"
-        ).ask()
-        if clear_folder:
-            clear_jar_files(modpack_folderpath)
-            print("Everything cleared.", style="success")
+        )
+        .skip_if(should_clear_folders, default=True)
+        .ask()
+    )
+    if clear_folder:
+        clear_jar_files(modpack_folderpath)
+        print("Everything cleared.", style="success")
 
     # actually downloading mods (with progress bar)
 

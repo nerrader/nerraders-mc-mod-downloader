@@ -1,5 +1,3 @@
-idk what i should put here uh
-
 **free, quick, easy to use mods downloader for minecraft**
 If there are no tags on a mod in the main menu, it is a cilent side mod by default.
 [S] = Server
