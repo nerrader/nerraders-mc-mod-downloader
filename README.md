@@ -87,7 +87,7 @@ Here are some features that will be planned for future major/minor releases.
 - Import/Export Modlists to ensure consistency across mod downloads and to pre-select mods.
 - Using asyncio to replace mutli threadding as it is faster and more reliabl for these tasks.
 - Further refactoring of main.py into other folders to make code and documentation easier to read.\
-- Finally implementing the behaviour setting 'Show Detailed Logs'.
+- Logging and verbose mode
 - Adding more mods, mod categories and settings to make this tool even more customizable.
 
 # Contributing
