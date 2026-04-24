@@ -165,15 +165,15 @@ def checkup_files(api_session: requests.Session) -> None:
         if should_update_idslugmap or not const.IDSLUGMAP_FILEPATH.exists():
             get_slugsidmap(api_session)
     except requests.exceptions.RequestException as error:
-        print(f"Critical Error: {error}", style="error")
+        print(f"Critical Error: {str(error)}", style="error")
         print(
-            "This was either caused due to an HTTP error (server) or a connection error (cilent)",
+            "\nThis was either caused by the server or the client, maybe check your internet connection",
             style="error",
         )
-        input("Press Enter to Exit")
         raise SystemExit(
             "The app cannot continue due to the above error, exiting now"
         ) from error
+    input("Press Enter to Exit")
 
 
 def main() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:

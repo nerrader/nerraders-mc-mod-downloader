@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from copy import deepcopy
 
 # project initialization module (my own one)
 from mc_mods_downloader import builder
@@ -162,9 +163,9 @@ def configure_settings(config: dict[str, Any]):
                     selection
                 ]
 
-    def main_settings_loop() -> None:
+    def main_settings_loop(original_config) -> None:
         """the main menu, where the user selects a thing to change"""
-        nonlocal config
+        new_config = deepcopy(original_config)
         while True:
             choice = questionary.select(
                 "Settings Menu",
@@ -182,27 +183,25 @@ def configure_settings(config: dict[str, Any]):
             ).ask()
             match choice:
                 case "Change Minecraft Version":
-                    config["version"] = change_minecraft_version()
+                    new_config["version"] = change_minecraft_version()
                 case "Change Mod Loader":
-                    config["mod_loader"] = change_mod_loader()
+                    new_config["mod_loader"] = change_mod_loader()
                 case "Select Valid Versions":
-                    config["valid_versions"] = select_valid_versions()
+                    new_config["valid_versions"] = select_valid_versions()
                 case "Set Default Folder Path":
-                    config["mods_directory"] = change_default_path()
+                    new_config["mods_directory"] = change_default_path()
                 case "Behaviour Settings":
-                    config["behaviour_settings"] = change_behaviour_settings()
+                    new_config["behaviour_settings"] = change_behaviour_settings()
                 case "Reset Settings to Default":
-                    config = builder.get_default_config()
+                    new_config = builder.get_default_config()
                 case "Exit and Save":
-                    builder.save_config(config)
-                    break
-
+                    builder.save_config(new_config)
+                    return new_config
                 case "Cancel":
-                    break
-        return
+                    return original_config
 
-    main_settings_loop()
-    return config
+    new_config = main_settings_loop(config)
+    return new_config
 
 
 def main_menu(current_config, json_modlist_data) -> tuple[list[str], dict]:
