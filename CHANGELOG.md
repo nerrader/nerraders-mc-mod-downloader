@@ -14,5 +14,9 @@
 # v1.2.0 - 23-03-2026
 - Now uses persistent API Sessions to make this tool significantly faster by removing the need to do a TCP handshake at the beginning of each.
 # v1.1.0 - 22-03-2026
-- Initial release of this tool (v1.0.0 disappeared)
+- Added more mod and more mod categories
+- Polished and cleaned up the overall code
 - Added core features for the tool such as the main menu, settings/configs, initial fetching and downloading process of mods.
+# v1.0.0 - 22-03-2026
+- Added configuration settings and the core features of the tool.
+- The initial release of the tool.
