@@ -29,19 +29,23 @@ I've always spent one to two hours just searching up and downloading those mods 
 
 > [!NOTE]
 > Before using this tool, make sure you have:
-> - Windows 10 or more (this doesn't work on other OS)
+> - Windows 10 or more (this doesn't work on other OSes)
 > - Stable internet connection (for the app/tool to run properly)
-> - Proper installation of minecraft (a place for mods to download)
+> - Proper installation of Minecraft, or any other launcher (a place for mods to download)
 
-1. Download the latest .exe file from the latest [Release](https://github.com/nerrader/nerraders-mc-mod-downloader/releases)
-2. Run the .exe file
-3. If Windows flags the .exe as unrecognized, click on **More Info > Run Anyway**
+1. Download the latest .zip folder from the latest [Release](https://github.com/nerrader/nerraders-mc-mod-downloader/releases)
+2. Extract the .zip folder
+3. Run the .exe file inside that folder
+4. If Windows flags the .exe as unrecognized, click on **More Info > Run Anyway**
 
-    > _This happens because this tool is new and does not have a paid Microsoft Developer Certificate._
+    > _This happens because this tool is new and does not have a paid Certificate. That would cost me $200/year to sign._
     
-4. You're done!
+5. You're done!
 
 # How to Use
+
+> [!important]
+These instructions are for users who are using the latest version of the `mc-mod-downloader`, if you are using an older version, some features may be unavailable, or the process may differ. I recommend updating this tool to the latest version for the best experience.
 
 The only part where it might be slightly confusing is the part where you need to select the mods themselves, as the rest of the tool is automated.
 
@@ -86,9 +90,10 @@ Here are some features that will be planned for future major/minor releases.
 
 - Import/Export Modlists to ensure consistency across mod downloads and to pre-select mods.
 - Using asyncio to replace mutli threadding as it is faster and more reliabl for these tasks.
-- Further refactoring of main.py into other folders to make code and documentation easier to read.\
+- Further refactoring of main.py into other folders to make code and documentation easier to read.
 - Logging and verbose mode
 - Adding more mods, mod categories and settings to make this tool even more customizable.
+- Compatibility with other OSes
 
 # Contributing
 
