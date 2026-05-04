@@ -1,4 +1,6 @@
-# v3.1.0 - 03-04-2026
+# v3.1.1 - 04-05-2026
+- Polished the mc-mods-downloader.exe icon
+# v3.1.0 - 04-05-2026
 - Removed Bandit dev dependency
 - Added compatibility for multiple OSes
 - Added a placeholder icon for the .exe
