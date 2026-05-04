@@ -94,7 +94,7 @@ def get_slugsidmap(api_session: requests.Session) -> None:
     modify_slugsmap(get_slugslist(), api_session)
 
 
-def get_default_config(api_session: requests.Session = None) -> dict:
+def get_default_config(api_session: requests.Session | None = None) -> dict:
     """it generates a default config for those who dont have a config.json yet,
 
     params:

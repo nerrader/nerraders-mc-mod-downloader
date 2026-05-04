@@ -339,7 +339,6 @@ wheels = [
 
 [[package]]
 name = "mc-mods-downloader"
-version = "3.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "platformdirs" },
