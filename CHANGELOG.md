@@ -1,3 +1,9 @@
+# v3.1.0 - 03-04-2026
+- Removed Bandit dev dependency
+- Added compatibility for multiple OSes
+- Added a placeholder icon for the .exe
+- Made it a .zip folder to prevent security warnings
+- Slightly polished code on all files
 # v3.0.0 - 03-04-2026
 - Huge code polishing and refactor, removed the need for global variables, put constants in constants.py, and so much more.
 - Uses rich.live to improve and polish the progress bars during downloading.
