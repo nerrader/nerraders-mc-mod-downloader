@@ -1,8 +1,10 @@
-import requests
-from os import makedirs
 import json
-from mc_mods_downloader import constants as const
+from os import makedirs
 from typing import Any
+
+import requests
+
+from mc_mods_downloader import constants as const
 
 # global constants
 print = const.CONSOLE.print
@@ -10,7 +12,7 @@ print = const.CONSOLE.print
 # MAIN_DATA_FILEPATH is where program stores json files
 
 
-def get_mods_json(api_session) -> bool:
+def get_mods_json(api_session: requests.Session) -> bool:
     """grabs the mods.json from my github repo, and puts it in mods.json (locally on appdata/roaming)
     also uses mods.etag to check if it is already up to date, removing the need to actually like save it
     every time the app launches
@@ -29,7 +31,6 @@ def get_mods_json(api_session) -> bool:
         api_headers["If-None-Match"] = etag_filepath.read_text().strip()
     response = api_session.get(mods_url, headers=api_headers, timeout=const.API_TIMEOUT)
     if response.status_code == 304:
-        print("mods.json is already on the latest version.")
         return False
     elif response.status_code != 200:
         raise requests.exceptions.HTTPError(
@@ -65,7 +66,7 @@ def get_slugslist() -> list[str]:  # only slugs, no ids
         return slugslist
 
 
-def modify_slugsmap(slugslist: list[str], api_session) -> None:
+def modify_slugsmap(slugslist: list[str], api_session: requests.Session) -> None:
     """Summary:
     From the list of slugs given, use the modrinth API to find the IDs for each slug,
     then put it in a dictionary (id: slug), then saves it to a file called id_slug_map.json (locally in appdata)
@@ -88,12 +89,12 @@ def modify_slugsmap(slugslist: list[str], api_session) -> None:
     print("Successfully made idslugmap.json")
 
 
-def get_slugsidmap(api_session) -> None:
+def get_slugsidmap(api_session: requests.Session) -> None:
     """combines two functions, to make a single function which handles the entire slugidmap creation"""
     modify_slugsmap(get_slugslist(), api_session)
 
 
-def get_default_config(api_session=None) -> dict:
+def get_default_config(api_session: requests.Session = None) -> dict:
     """it generates a default config for those who dont have a config.json yet,
 
     params:
@@ -173,7 +174,6 @@ def checkup_files(api_session: requests.Session) -> None:
         raise SystemExit(
             "The app cannot continue due to the above error, exiting now"
         ) from error
-    input("Press Enter to Exit")
 
 
 def main() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:

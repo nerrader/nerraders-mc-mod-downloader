@@ -1,9 +1,16 @@
-import requests
+from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
+from dataclasses import dataclass, field
 from glob import glob
 import os
+from pathlib import Path
 from sys import exit
+from typing import Any
+
 import questionary
+import requests
 from rich.console import Group
+from rich.live import Live
 from rich.progress import (
     Progress,
     BarColumn,
@@ -12,15 +19,9 @@ from rich.progress import (
     TaskProgressColumn,
     MofNCompleteColumn,
 )
-from rich.live import Live
 from rich.table import Table
-from pathlib import Path
-from typing import Any
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
-from copy import deepcopy
 
-# project initialization module (my own one)
+# builder for tool initialization, creating required appdata folders and stuff like that
 from mc_mods_downloader import builder
 
 # global variables initialization, global variables (constants) have to start with const.
@@ -63,7 +64,7 @@ def configure_settings(config: dict[str, Any]):
             for version in data
             if version["version_type"] == "release"
         ]
-        print("Tip: Press tab to enable autocomplete", style="warning")
+        print("Tip: Press Tab to enable autocomplete", style="warning")
         selected_version = questionary.autocomplete(
             "Type your minecraft version (e.g. 1.21): ",
             choices=minecraft_versions,
@@ -163,7 +164,7 @@ def configure_settings(config: dict[str, Any]):
                     selection
                 ]
 
-    def main_settings_loop(original_config) -> None:
+    def main_settings_loop(original_config: dict[str, Any]) -> dict[str, Any]:
         """the main menu, where the user selects a thing to change"""
         new_config = deepcopy(original_config)
         while True:
@@ -471,17 +472,30 @@ def _get_selected_launcher_path() -> tuple[Path, bool]:
         bool: Whether the user created a manual path
     """
     # redefining APPDATA_FILEPATH for this func only
-    APPDATA_FILEPATH = Path(os.getenv("APPDATA", Path.home() / "AppData" / "Roaming"))
-    folder_path_search_locations: dict[str, Path] = {
-        "Minecraft Launcher": APPDATA_FILEPATH / ".minecraft" / "modpacks",
-        "Prism Launcher": APPDATA_FILEPATH / "PrismLauncher" / "instances",
-        "Lunar Client": Path.home() / ".lunarclient" / "offline" / "multiver",
-        "Feather Client": APPDATA_FILEPATH / ".feather" / "instances",
-        "CurseForge": Path.home() / "curseforge" / "minecraft" / "instances",
-    }
+    if const.USER_OS == "win32":
+        folderpath_search_locations = {
+            "Minecraft Launcher": const.APPDATA_FILEPATH / ".minecraft" / "modpacks",
+            "Prism Launcher": const.APPDATA_FILEPATH / "PrismLauncher" / "instances",
+            "Lunar Client": const.HOME_FILEPATH
+            / ".lunarclient"
+            / "offline"
+            / "multiver",
+            "Feather Client": const.APPDATA_FILEPATH / ".feather" / "instances",
+            "CurseForge": const.HOME_FILEPATH
+            / "curseforge"
+            / "minecraft"
+            / "instances",
+        }
+    else:  # sorry but for linux or macos or anything else its not worth the unreliability of the filepaths
+        return (
+            enter_manual_path(
+                "Automatic launcher detection is only available on Windows. Please enter the path to your mods folder manually: "
+            ),
+            True,
+        )
     launcher_choices: list[str] = [
         location
-        for location, folderpath in folder_path_search_locations.items()
+        for location, folderpath in folderpath_search_locations.items()
         if folderpath.exists()
     ]
 
@@ -508,7 +522,7 @@ def _get_selected_launcher_path() -> tuple[Path, bool]:
     else:
         launcher_choice = launcher_choices[0]
 
-    launcher_path = folder_path_search_locations[launcher_choice]
+    launcher_path = folderpath_search_locations[launcher_choice]
     return (launcher_path, False)
 
 
@@ -584,16 +598,30 @@ def enter_manual_path(prompt: str) -> Path:
 
     Returns:
         Path: The path object returned by this function
+
+    This funciton can also exit out of the program if the user cancels the manual filepath prompt,
+    as the program cannot function if there is no path given to download the mods.
     """
     # not really a warning but i think yellow fits here so
     print(
         "Tip: You can copy and paste the path from the file explorer search bar",
         style="warning",
     )
-    folder_path = questionary.path(
-        prompt,
-    ).ask()
-    return Path(folder_path)
+    while True:
+        folder_path_str = questionary.path(
+            prompt,
+        ).ask()
+        if folder_path_str is None or folder_path_str.lower() in ["exit", "quit", "q"]:
+            exit("Error: No folder path provided.")
+
+        folder_path = Path(folder_path_str)
+
+        if folder_path.exists() and folder_path.is_dir():
+            return folder_path
+
+        print(
+            "Folder path does not exist or is not a directory. Try again", style="error"
+        )
 
 
 def download_mods(

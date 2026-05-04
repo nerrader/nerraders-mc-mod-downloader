@@ -1,15 +1,16 @@
 [build-system]
-requires = ["hatchling >= 1.26"]
+requires = ["hatchling>1.26"]
 build-backend = "hatchling.build"
 
 [project]
 name = "mc_mods_downloader"
-version = "3.0.0"
+version = "3.0.1"
 description = "A tool to help you download minecraft mods quickly and easily"
 readme = "README.md"
 # found using vermin package
 requires-python = ">=3.10"
 dependencies = [
+    "platformdirs>=4.9.4",
     "questionary>=2.1.1",
     "requests>=2.33.0",
     "rich>=14.3.3",
@@ -21,7 +22,6 @@ license = "MIT"
 
 [dependency-groups]
 dev = [
-    "bandit>=1.9.4",
     "mypy>=1.19.1",
     "pip-audit>=2.10.0",
     "pyinstaller>=6.19.0",
@@ -34,4 +34,3 @@ dev = [
 
 [project.scripts]
 mcdl = "mc_mods_downloader.main:main"
-# stands for mc-downloader

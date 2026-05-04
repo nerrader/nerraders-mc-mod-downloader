@@ -1,9 +1,11 @@
 # This file is only for storing constants in main.py and builder.py
+from pathlib import Path
+import sys
+from threading import Lock
+
+from platformdirs import PlatformDirs, user_data_path
 from rich.theme import Theme
 from rich.console import Console
-from pathlib import Path
-from os import getenv
-from threading import Lock
 
 # rich module things
 CUSTOM_THEME = Theme({"error": "bold red", "success": "green", "warning": "yellow"})
@@ -11,14 +13,18 @@ CONSOLE = Console(theme=CUSTOM_THEME, highlight=False)
 
 # APPDATA_FILEPATH is where program stores json files
 # filepaths
-APPDATA_FILEPATH = Path(getenv("APPDATA", Path.home() / "AppData" / "Roaming"))
-MAIN_DATA_FILEPATH = APPDATA_FILEPATH / "mc-mods-downloader"
-MODS_FILEPATH = MAIN_DATA_FILEPATH / "mods.json"
-IDSLUGMAP_FILEPATH = MAIN_DATA_FILEPATH / "idslugmap.json"
-CONFIG_FILEPATH = MAIN_DATA_FILEPATH / "config.json"
+_dirs = PlatformDirs("mc-mods-downloader", appauthor="nerrader", roaming=True)
 
+MAIN_DATA_FILEPATH: Path = _dirs.user_data_path
+MODS_FILEPATH: Path = MAIN_DATA_FILEPATH / "mods.json"
+IDSLUGMAP_FILEPATH: Path = MAIN_DATA_FILEPATH / "idslugmap.json"
+CONFIG_FILEPATH: Path = MAIN_DATA_FILEPATH / "config.json"
+# for finding the folder path automatically
 
-# MISC CONSTANTS
+USER_OS: str = sys.platform
+HOME_FILEPATH = Path.home()
+APPDATA_FILEPATH: Path = user_data_path(roaming=True)
+# OTHER CONSTANTS
 
 # specifically for one thing in main.py:get_mods()
 # aka for adding mods in the visited_mods set
