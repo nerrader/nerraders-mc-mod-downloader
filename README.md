@@ -97,7 +97,6 @@ Here are some features that will be planned for future major/minor releases.
 - Further refactoring of main.py into other folders to make code and documentation easier to read.
 - Logging and verbose mode
 - Adding more mods, mod categories and settings to make this tool even more customizable.
-- Compatibility with other OSes
 
 # Contributing
 
