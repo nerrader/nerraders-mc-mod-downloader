@@ -704,14 +704,21 @@ def download_mods(
             main_progress.update(mods_downloaded, advance=1)
             mod_download_progress.remove_task(mod_downloading_progress_id)
 
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor() as executor:
             executor.map(download_one_mod, modlist)
 
 
 def get_download_summary(download_context: DownloadContext) -> None:
+    """This shows the download summary which includes:
+    - The amount of mods downloaded
+    - The amount of depedency mods downloaded
+    - The mods that failed to download and the cause, formatted in a table
+    """
     print(
         f"\n[green]{len(download_context.full_modlist)} mods downloaded![/green] ({download_context.dependency_mods_counter} of which were dependencies)"
     )
+
+    # if there were any failed mods, add them to a table
     if len(download_context.failed_mods) > 0:
         failed_mods_table = Table(
             title="Failed Mods", show_header=True, header_style="bold red"
