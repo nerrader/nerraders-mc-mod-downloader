@@ -1,186 +1,569 @@
 {
     "optimization_mods": [
-        { "name": "Sodium", "value": "sodium" },
-        { "name": "Sodium Extra", "value": "sodium-extra" },
+        {
+            "name": "Sodium",
+            "value": "sodium",
+            "loaders": ["fabric", "neoforge"]
+        },
+        {
+            "name": "Sodium Extra",
+            "value": "sodium-extra",
+            "loaders": ["fabric"]
+        },
         {
             "name": "Reese's Sodium Options",
-            "value": "reeses-sodium-options"
+            "value": "reeses-sodium-options",
+            "loaders": ["fabric"]
         },
-        { "name": "Embeddium (Forge)", "value": "embeddium" },
-        { "name": "Debugify", "value": "debugify" },
+        {
+            "name": "Embeddium (Forge)",
+            "value": "embeddium",
+            "loaders": ["forge", "neoforge"]
+        },
+        { "name": "Canary (Forge)", "value": "canary", "loaders": ["forge"] },
+        {
+            "name": "Debugify",
+            "value": "debugify",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
         {
             "name": "Bad Optimizations",
-            "value": "badoptimizations"
+            "value": "badoptimizations",
+            "loaders": ["fabric"]
         },
-        { "name": "Packet Fixer", "value": "packet-fixer" },
+        {
+            "name": "Packet Fixer",
+            "value": "packet-fixer",
+            "loaders": ["fabric", "forge"]
+        },
         {
             "name": "ImmediatelyFast",
-            "value": "immediatelyfast"
+            "value": "immediatelyfast",
+            "loaders": ["fabric", "forge", "neoforge"]
         },
-        { "name": "[BOTH] FerriteCore", "value": "ferrite-core" },
-        { "name": "ModernFix", "value": "modernfix" },
-        { "name": "Starlight", "value": "starlight" },
-        { "name": "Lazy DFU", "value": "lazydfu" },
-        { "name": "Lithium", "value": "lithium" },
-        { "name": "[S] Noisium Forked", "value": "noisiumforked" },
-        { "name": "[S] Clumps", "value": "clumps" },
-        { "name": "[DEV] [S] Spark", "value": "spark" },
+        {
+            "name": "Memory Leak Fix",
+            "value": "memoryleakfix",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "[BOTH] FerriteCore",
+            "value": "ferrite-core",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "ModernFix",
+            "value": "modernfix",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Starlight",
+            "value": "starlight",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Lazy DFU",
+            "value": "lazydfu",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Lithium",
+            "value": "lithium",
+            "loaders": ["fabric", "neoforge"]
+        },
+        {
+            "name": "[S] Noisium Forked",
+            "value": "noisiumforked",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "[S] Clumps",
+            "value": "clumps",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "[DEV] [S] Spark",
+            "value": "spark",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
         {
             "name": "[MP] Very Manny Players (Fabric)",
-            "value": "vmp-fabric"
+            "value": "vmp-fabric",
+            "loaders": ["fabric"]
         },
-        { "name": "Ixeris", "value": "ixeris" },
-        { "name": "Entity Culling", "value": "entityculling" },
-        { "name": "OptiGUI", "value": "optigui" },
+        { "name": "Ixeris", "value": "ixeris", "loaders": ["fabric"] },
+        {
+            "name": "Entity Culling",
+            "value": "entityculling",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        { "name": "OptiGUI", "value": "optigui", "loaders": ["fabric"] },
         {
             "name": "ForceCloseWorldLoadingScreen",
-            "value": "forcecloseworldloadingscreen"
+            "value": "forcecloseworldloadingscreen",
+            "loaders": ["fabric", "forge"]
         },
-        { "name": "Iris Shaders", "value": "iris" },
+        {
+            "name": "Iris Shaders",
+            "value": "iris",
+            "loaders": ["fabric", "neoforge"]
+        },
+        { "name": "Oculus (Forge)", "value": "oculus", "loaders": ["forge"] },
         {
             "name": "Language Reload",
-            "value": "language-reload"
+            "value": "language-reload",
+            "loaders": ["fabric"]
         },
-        { "name": "[MP] Krypton", "value": "krypton" },
-        { "name": "More Culling", "value": "moreculling" }
+        { "name": "[MP] Krypton", "value": "krypton", "loaders": ["fabric"] },
+        {
+            "name": "More Culling",
+            "value": "moreculling",
+            "loaders": ["fabric"]
+        }
     ],
     "pvp_mods": [
-        { "name": "Appleskin", "value": "appleskin" },
-        { "name": "Status Effect Timer", "value": "statuseffecttimer" },
-        { "name": "Uku's Armor HUD", "value": "ukus-armor-hud" },
-        { "name": "Centered Crosshair", "value": "centered-crosshair" },
-        { "name": "Shield Status", "value": "shield-statuses" },
+        {
+            "name": "Appleskin",
+            "value": "appleskin",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Status Effect Timer",
+            "value": "statuseffecttimer",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Uku's Armor HUD",
+            "value": "ukus-armor-hud",
+            "loaders": ["fabric"]
+        },
+        {
+            "name": "Centered Crosshair",
+            "value": "centered-crosshair",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Shield Status",
+            "value": "shield-statuses",
+            "loaders": ["fabric", "forge"]
+        },
         {
             "name": "Crosshair Addons Public",
-            "value": "crosshair-addons-public"
+            "value": "crosshair-addons-public",
+            "loaders": ["fabric"]
         },
         {
             "name": "Better Ping Display",
-            "value": "better-ping-display-fabric"
+            "value": "better-ping-display-fabric",
+            "loaders": ["fabric", "forge"]
         },
         {
             "name": "[!] Attack Through Grass",
-            "value": "attack-through-grass"
+            "value": "attack-through-grass",
+            "loaders": ["fabric", "forge"]
         },
-        { "name": "Bactro Mod", "value": "bactromod" }
+        { "name": "Bactro Mod", "value": "bactromod", "loaders": ["fabric"] }
     ],
     "misc_mods": [
-        { "name": "Cherished Worlds", "value": "cherished-worlds" },
+        {
+            "name": "Cherished Worlds",
+            "value": "cherished-worlds",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
         {
             "name": "No Resource Pack Warnings",
-            "value": "no-resource-pack-warnings"
+            "value": "no-resource-pack-warnings",
+            "loaders": ["fabric", "forge"]
         },
-        { "name": "[S] Sit", "value": "bl4cks-sit" },
-        { "name": "Fancy Menu", "value": "fancymenu" },
-        { "name": "Your Options Shall Be Respected", "value": "yosbr" }
+        {
+            "name": "[S] Sit",
+            "value": "bl4cks-sit",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Fancy Menu",
+            "value": "fancymenu",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Your Options Shall Be Respected",
+            "value": "yosbr",
+            "loaders": ["fabric", "forge"]
+        }
     ],
     "building_mods": [
-        { "name": "[DEV] Axiom", "value": "axiom" },
+        { "name": "[DEV] Axiom", "value": "axiom", "loaders": ["fabric"] },
         {
             "name": "Accurate Block Placement",
-            "value": "accurate-block-placement-reborn"
+            "value": "accurate-block-placement-reborn",
+            "loaders": ["fabric", "forge"]
         },
-        { "name": "[DEV] Worldedit", "value": "worldedit" },
-        { "name": "[DEV] Worldedit CUI", "value": "worldedit-cui" },
-        { "name": "[!] Litematica", "value": "litematica" },
-        { "name": "[!] Freecam", "value": "freecam" }
+        {
+            "name": "[DEV] Worldedit",
+            "value": "worldedit",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "[DEV] Worldedit CUI",
+            "value": "worldedit-cui",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "[!] Litematica",
+            "value": "litematica",
+            "loaders": ["fabric"]
+        },
+        {
+            "name": "[!] Freecam",
+            "value": "freecam",
+            "loaders": ["fabric", "forge"]
+        }
     ],
     "visual_mods": [
-        { "name": "Not Enough Animations", "value": "not-enough-animations" },
-        { "name": "Gamma Utils", "value": "gamma-utils" },
-        { "name": "3D Skin Layers", "value": "3dskinlayers" },
-        { "name": "Subtle Effects", "value": "subtle-effects" },
-        { "name": "Visuality", "value": "visuality" },
-        { "name": "Blur+", "value": "blur-plus" },
-        { "name": "Dynamic Lights", "value": "lambdynamiclights" },
-        { "name": "Visual Workbench", "value": "visual-workbench" },
-        { "name": "Chat Animation", "value": "chatanimation" },
-        { "name": "Smooth Scrolling", "value": "smooth-scroll" },
-        { "name": "Wavey Capes", "value": "wavey-capes" },
-        { "name": "Model Gap Fix", "value": "modelfix" },
-        { "name": "Better Snow Coverage", "value": "better-snow-coverage" },
-        { "name": "Continuity", "value": "continuity" },
-        { "name": "Fresh Animations", "value": "fresh-animations" },
-        { "name": "Make Bubbles Pop", "value": "make_bubbles_pop" },
-        { "name": "Explosive Enhancement", "value": "explosive-enhancement" },
-        { "name": "Particular", "value": "particular" },
-        { "name": "Particle Rain", "value": "particle-rain" },
-        { "name": "Amendments", "value": "amendments" },
-        { "name": "Effective", "value": "effective" },
-        { "name": "Cave Dust", "value": "cave-dust" },
-        { "name": "Tiny Item Animations", "value": "tiny-item-animations" },
-        { "name": "Falling Leaves", "value": "fallingleaves" },
-        { "name": "Eating Animation", "value": "eating-animation" },
-        { "name": "Wakes", "value": "wakes" },
-        { "name": "A Good Place", "value": "a-good-place" },
-        { "name": "Aurae", "value": "aurae" },
-        { "name": "Clean Tooltips", "value": "clean-tooltips" }
+        {
+            "name": "Not Enough Animations",
+            "value": "not-enough-animations",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Gamma Utils",
+            "value": "gamma-utils",
+            "loaders": ["fabric"]
+        },
+        {
+            "name": "3D Skin Layers",
+            "value": "3dskinlayers",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Subtle Effects",
+            "value": "subtle-effects",
+            "loaders": ["fabric"]
+        },
+        {
+            "name": "Visuality",
+            "value": "visuality",
+            "loaders": ["fabric", "forge"]
+        },
+        { "name": "Blur+", "value": "blur-plus", "loaders": ["fabric"] },
+        {
+            "name": "Dynamic Lights",
+            "value": "lambdynamiclights",
+            "loaders": ["fabric"]
+        },
+        {
+            "name": "Visual Workbench",
+            "value": "visual-workbench",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Chat Animation",
+            "value": "chatanimation",
+            "loaders": ["fabric"]
+        },
+        {
+            "name": "Smooth Scrolling",
+            "value": "smooth-scroll",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Wavey Capes",
+            "value": "wavey-capes",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Model Gap Fix",
+            "value": "modelfix",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Better Snow Coverage",
+            "value": "better-snow-coverage",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        { "name": "Continuity", "value": "continuity", "loaders": ["fabric"] },
+        {
+            "name": "Fresh Animations",
+            "value": "fresh-animations",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Make Bubbles Pop",
+            "value": "make_bubbles_pop",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Explosive Enhancement",
+            "value": "explosive-enhancement",
+            "loaders": ["fabric", "forge"]
+        },
+        { "name": "Particular", "value": "particular", "loaders": ["fabric"] },
+        {
+            "name": "Particle Rain",
+            "value": "particle-rain",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Amendments",
+            "value": "amendments",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        { "name": "Effective", "value": "effective", "loaders": ["fabric"] },
+        {
+            "name": "Cave Dust",
+            "value": "cave-dust",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Tiny Item Animations",
+            "value": "tiny-item-animations",
+            "loaders": ["fabric"]
+        },
+        {
+            "name": "Falling Leaves",
+            "value": "fallingleaves",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Eating Animation",
+            "value": "eating-animation",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        { "name": "Wakes", "value": "wakes", "loaders": ["fabric"] },
+        {
+            "name": "A Good Place",
+            "value": "a-good-place",
+            "loaders": ["fabric"]
+        },
+        { "name": "Aurae", "value": "aurae", "loaders": ["fabric"] },
+        {
+            "name": "Clean Tooltips",
+            "value": "clean-tooltips",
+            "loaders": ["fabric", "forge"]
+        }
     ],
     "hud_mods": [
-        { "name": "Jade", "value": "jade" },
-        { "name": "Better F3", "value": "betterf3" },
-        { "name": "Better Statistics Screen", "value": "better-stats" },
-        { "name": "EMI", "value": "emi" },
-        { "name": "[MP] More Chat History", "value": "morechathistory" },
-        { "name": "Beautified Chat Cilent", "value": "beautified-chat-client" },
-        { "name": "Chat Patches", "value": "chatpatches" },
-        { "name": "Sprint Indicator", "value": "sprint-indicator" },
-        { "name": "[MP] [!] Xaero's Minimap", "value": "xaeros-minimap" },
-        { "name": "[MP] [!] wWaypoints", "value": "wwaypoints" },
-        { "name": "Shulker Box Tooltip", "value": "shulkerboxtooltip" },
-        { "name": "Auto HUD", "value": "autohud" },
-        { "name": "Better Advancements", "value": "better-advancements" }
+        {
+            "name": "Jade",
+            "value": "jade",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Better F3",
+            "value": "betterf3",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Better Statistics Screen",
+            "value": "better-stats",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "EMI",
+            "value": "emi",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "[MP] More Chat History",
+            "value": "morechathistory",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Beautified Chat Cilent",
+            "value": "beautified-chat-client",
+            "loaders": ["fabric"]
+        },
+        {
+            "name": "Chat Patches",
+            "value": "chatpatches",
+            "loaders": ["fabric"]
+        },
+        {
+            "name": "Sprint Indicator",
+            "value": "sprint-indicator",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "[MP] [!] Xaero's Minimap",
+            "value": "xaeros-minimap",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "[MP] [!] Xaero's World Map",
+            "value": "xaeros-world-map",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "[MP] [!] wWaypoints",
+            "value": "wwaypoints",
+            "loaders": ["fabric"]
+        },
+        {
+            "name": "Shulker Box Tooltip",
+            "value": "shulkerboxtooltip",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Auto HUD",
+            "value": "autohud",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Paginated Achievements",
+            "value": "paginatedadvancements",
+            "loaders": ["fabric", "forge", "neoforge"]
+        }
     ],
     "auditory_mods": [
         {
             "name": "Sound Physics Remastered",
-            "value": "sound-physics-remastered"
+            "value": "sound-physics-remastered",
+            "loaders": ["fabric", "forge", "neoforge"]
         },
-        { "name": "Drip Sounds", "value": "dripsounds" },
-        { "name": "Ambient Sounds", "value": "ambientsounds" },
+        {
+            "name": "Drip Sounds",
+            "value": "dripsounds",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Ambient Sounds",
+            "value": "ambientsounds",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
         {
             "name": "Dynamic Surroundings",
-            "value": "dynamicsurroundingsfabric"
+            "value": "dynamicsurroundingsfabric",
+            "loaders": ["fabric"]
         },
-        { "name": "Presence Footsteps", "value": "presence-footsteps" },
-        { "name": "Door Knocking", "value": "door-knocking" },
-        { "name": "Sounds", "value": "sound" },
-        { "name": "Cool Rain", "value": "coolrain" },
-        { "name": "Auditory Continued", "value": "auditory-continued" }
+        {
+            "name": "Presence Footsteps",
+            "value": "presence-footsteps",
+            "loaders": ["fabric"]
+        },
+        {
+            "name": "Door Knocking",
+            "value": "door-knocking",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        { "name": "Sounds", "value": "sound", "loaders": ["fabric", "forge"] },
+        { "name": "Cool Rain", "value": "coolrain", "loaders": ["fabric"] },
+        {
+            "name": "Auditory Continued",
+            "value": "auditory-continued",
+            "loaders": ["fabric", "forge"]
+        }
     ],
     "social_mods": [
-        { "name": "[MP] No Chat Reports", "value": "no-chat-reports" },
-        { "name": "[S] [MP] Simple Voice Chat", "value": "simple-voice-chat" },
-        { "name": "Emoji Type", "value": "emoji-type" },
-        { "name": "[S] [MP] What are they up to", "value": "simple-voice-chat" }
+        {
+            "name": "[MP] No Chat Reports",
+            "value": "no-chat-reports",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "[S] [MP] Simple Voice Chat",
+            "value": "simple-voice-chat",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Emoji Type",
+            "value": "emoji-type",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "[MP] What are they up to",
+            "value": "what-are-they-up-to",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Essential Mod",
+            "value": "essential",
+            "loaders": ["fabric", "forge", "neoforge"]
+        }
     ],
     "qol_mods": [
-        { "name": "Mod Menu", "value": "modmenu" },
-        { "name": "Zoomify", "value": "zoomify" },
-        { "name": "[S] Vanilla Refresh", "value": "vanilla-refresh" },
-        { "name": "Controlling", "value": "controlling" },
-        { "name": "[MP] Chat Heads", "value": "chat-heads" },
-        { "name": "Better Climbing", "value": "better-climbing" },
-        { "name": "Resourcify", "value": "resourcify" },
-        { "name": "Easy Anvils", "value": "easy-anvils" },
-        { "name": "Easy Magic", "value": "easy-magic" },
-        { "name": "Auto Sprint Fix", "value": "auto-sprint-fix" },
-        { "name": "Mouse Tweaks", "value": "mouse-tweaks" },
-        { "name": "Cilent Tweaks", "value": "client-tweaks" },
-        { "name": "Inventory Essentials", "value": "inventory-essentials" },
-        { "name": "[S] Better than Mending", "value": "better-than-mending" },
-        { "name": "[MP] Bobby", "value": "bobby" },
+        { "name": "Mod Menu", "value": "modmenu", "loaders": ["fabric"] },
+        { "name": "Zoomify", "value": "zoomify", "loaders": ["fabric"] },
+        {
+            "name": "[S] Vanilla Refresh",
+            "value": "vanilla-refresh",
+            "loaders": ["fabric"]
+        },
+        {
+            "name": "Controlling",
+            "value": "controlling",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "[MP] Chat Heads",
+            "value": "chat-heads",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Better Climbing",
+            "value": "better-climbing",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        { "name": "Resourcify", "value": "resourcify", "loaders": ["fabric"] },
+        {
+            "name": "Easy Anvils",
+            "value": "easy-anvils",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Easy Magic",
+            "value": "easy-magic",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Auto Sprint Fix",
+            "value": "auto-sprint-fix",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Mouse Tweaks",
+            "value": "mouse-tweaks",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "More Mouse Tweaks",
+            "value": "moremousetweaks",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Stack Refill",
+            "value": "stack-refill",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Cilent Tweaks",
+            "value": "client-tweaks",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "Inventory Essentials",
+            "value": "inventory-essentials",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "[S] Better than Mending",
+            "value": "better-than-mending",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        { "name": "[MP] Bobby", "value": "bobby", "loaders": ["fabric"] },
         {
             "name": "[SP] Distant Horizons",
-            "value": "distanthorizons"
+            "value": "distanthorizons",
+            "loaders": ["fabric", "forge", "neoforge"]
         },
         {
             "name": "Inventory Move",
-            "value": "invmove"
+            "value": "invmove",
+            "loaders": ["fabric", "forge", "neoforge"]
         },
         {
             "name": "[S] Right Click Harvest",
-            "value": "rightclickharvest"
+            "value": "rightclickharvest",
+            "loaders": ["fabric", "forge", "neoforge"]
         }
     ],
     "library_mods": [

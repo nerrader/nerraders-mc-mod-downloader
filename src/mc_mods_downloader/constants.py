@@ -13,7 +13,7 @@ CONSOLE = Console(theme=CUSTOM_THEME, highlight=False)
 
 # APPDATA_FILEPATH is where program stores json files
 # filepaths
-_dirs = PlatformDirs("mc-mods-downloader", appauthor="nerrader", roaming=True)
+_dirs = PlatformDirs("mc-mods-downloader", appauthor="nerrader")
 
 MAIN_DATA_FILEPATH: Path = _dirs.user_data_path
 MODS_FILEPATH: Path = MAIN_DATA_FILEPATH / "mods.json"

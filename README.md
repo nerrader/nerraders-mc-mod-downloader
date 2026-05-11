@@ -11,15 +11,19 @@ I've always spent one to two hours just searching up and downloading those mods 
 # Features
 
 - ### Interactive CLI Elements
+
     This tool uses questionary to make this CLI tool easier to use and more interactive.
 
 - ### Automatic Dependency Resolution
-    This tool scans the mods to see if it requires any depedencies, and automatically downloads them too. 
+
+    This tool scans the mods to see if it requires any depedencies, and automatically downloads them too.
 
 - ### Extremely Fast Download Speeds
+
     This tool uses API Sessions and Multithreadding to significantly speed up the process of fetching mod data and downloading.
 
 - ### Incompatible Mod Safety
+
     This tool safely ignores and filters the mods that are not compatible with your selected mod loader and game version in the settings, the incompatible mods will then be put in a summary at the end of the downloading process for you to see for yourself.
 
 - ### Customizable
@@ -29,6 +33,7 @@ I've always spent one to two hours just searching up and downloading those mods 
 
 > [!NOTE]
 > Before using this tool, make sure you have:
+>
 > - Windows 10 or more (this doesn't work on other OSes)
 > - Stable internet connection (for the app/tool to run properly)
 > - Proper installation of Minecraft, or any other launcher (a place for mods to download)
@@ -36,20 +41,20 @@ I've always spent one to two hours just searching up and downloading those mods 
 1. **Download** the latest .zip folder from the latest [Release](https://github.com/nerrader/nerraders-mc-mod-downloader/releases)
 2. **Extract** the **.zip folder**
 3. Run the .exe file inside that folder
-> [!important]
-> If Windows flags the .exe as unrecognized, click on **More Info > Run Anyway**
-> 
-> This happens because this tool is new and does not have a paid Certificate. That would cost me $200/year to sign.
-> 
-> Here's a [VirusTotal scan](https://www.virustotal.com/gui/file/0715d68d44ee76ea12aa96c12561cefab7cdd1c2049f4a718f36cdd5ea1fa974?nocache=1) I did on my own .exe as of v3.1.1.
->
-> If you are still curious or still skeptical of the safety of the .exe, feel free to run your own VirusTotal scan, or just check the source code that is available right here on GitHub. Everything's open source.
+    > [!important]
+    > If Windows flags the .exe as unrecognized, click on **More Info > Run Anyway**
+    >
+    > This happens because this tool is new and does not have a paid Certificate. That would cost me $200/year to sign.
+    >
+    > Here's a [VirusTotal scan](https://www.virustotal.com/gui/file/0715d68d44ee76ea12aa96c12561cefab7cdd1c2049f4a718f36cdd5ea1fa974?nocache=1) I did on my own .exe as of v3.1.1
+    >
+    > If you are still curious or still skeptical of the safety of the .exe, feel free to run your own VirusTotal scan, or just check the source code that is available right here on GitHub. Everything's open source.
 4. You're done!
 
 # How to Use
 
 > [!important]
-These instructions are for users who are using the latest version of the `mc-mod-downloader`, if you are using an older version, some features may be unavailable, or the process may differ. I recommend updating this tool to the latest version for the best experience.
+> These instructions are for users who are using the latest version of the `mc-mod-downloader`, if you are using an older version, some features may be unavailable, or the process may differ. I recommend updating this tool to the latest version for the best experience.
 
 The only part where it might be slightly confusing is the part where you need to select the mods themselves, as the rest of the tool is automated.
 
@@ -65,17 +70,18 @@ The only part where it might be slightly confusing is the part where you need to
 - Repeat this process with multiple (or all) the categories until you are satisfied.
 - When you're done, you can press enter on 'Finish and Download' to start the download process.
 
-> [!TIP] 
+> [!TIP]
 > Make sure to check and configure your settings to your liking before starting the download process, as defaults might be undesirable.
 >
 > #### Default Settings:
-> | Setting/Config | Default Value | Description |
-> | :--------: | :------------: | :---: |
-> | Mod Loader | Fabric | Mods meant for other loaders like Forge will be skipped |
-> | Game Version | Latest Release | Snapshots, alpha and beta versions do not count |
-> | Valid Versions | Release | This means that alpha/beta mod versions will not get downloaded |
-> | Auto Clear Jars | False | Requires confirmation before clearing all .jars |
-> | Show Detailed Logs | False | (Planned) Logs more of the tools whereabouts and what its doing that are usually hidden to the average user |
+>
+> |   Setting/Config   | Default Value  |                                                 Description                                                 |
+> | :----------------: | :------------: | :---------------------------------------------------------------------------------------------------------: |
+> |     Mod Loader     |     Fabric     |                           Mods meant for other loaders like Forge will be skipped                           |
+> |    Game Version    | Latest Release |                               Snapshots, alpha and beta versions do not count                               |
+> |   Valid Versions   |    Release     |                       This means that alpha/beta mod versions will not get downloaded                       |
+> |  Auto Clear Jars   |     False      |                               Requires confirmation before clearing all .jars                               |
+> | Show Detailed Logs |     False      | (Planned) Logs more of the tools whereabouts and what its doing that are usually hidden to the average user |
 
 ### Mod Tags
 

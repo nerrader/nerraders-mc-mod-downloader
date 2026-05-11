@@ -78,8 +78,9 @@ def configure_settings(config: dict[str, Any]):
         Returns:
             str: the mod loader chosen by the user
         """
+        print("Note that all Quilt users can use Fabric mods.", style="info")
         selected_mod_loader = questionary.select(
-            "Choose your mod loader:", choices=("Fabric", "NeoForge", "Forge", "Quilt")
+            "Choose your mod loader:", choices=("Fabric", "NeoForge", "Forge")
         ).ask()
         return selected_mod_loader
 
@@ -205,9 +206,14 @@ def configure_settings(config: dict[str, Any]):
     return new_config
 
 
-def main_menu(current_config, json_modlist_data) -> tuple[list[str], dict]:
+def main_menu(
+    current_config: dict, json_modlist_data: dict[str, list]
+) -> tuple[list[str], dict]:
     """displays a questionary type ui to choose minecraft mods based off whats in mods.json, also where you configure settings
 
+    Args:
+        current_config (dict): The config, which could be changed in the configure_settings()
+        json_modlist_data (dict[str, list]): The mods.json loaded from the builder.py
     Returns:
         tuple: to wrap both of them into a sort of list
 
@@ -219,7 +225,6 @@ def main_menu(current_config, json_modlist_data) -> tuple[list[str], dict]:
 
     """
     initial_modlist: list[str] = []
-    updated_config: dict = {}
 
     category_map = {
         "Optimization & Performance": "optimization_mods",
@@ -245,14 +250,14 @@ def main_menu(current_config, json_modlist_data) -> tuple[list[str], dict]:
 
         match json_key:
             case "exit and save":
-                return (initial_modlist, updated_config)
+                return (initial_modlist, current_config)
             case "settings":
-                updated_config = configure_settings(current_config)
+                current_config = configure_settings(current_config)
                 continue
             case "clear":
                 initial_modlist = []
                 continue
-            case "cancel":  # cancel
+            case "cancel":
                 exit(0)
 
         mods_in_category: list[dict[str, str]] = json_modlist_data.get(json_key, [])
@@ -265,6 +270,7 @@ def main_menu(current_config, json_modlist_data) -> tuple[list[str], dict]:
                 "checked": mod["value"] in initial_modlist,
             }
             for mod in mods_in_category
+            if current_config["mod_loader"] in mod["loaders"]
         ]
 
         selection = questionary.checkbox(
