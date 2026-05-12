@@ -55,7 +55,7 @@ def configure_settings(config: dict[str, Any]):
         Returns:
             str: the game version chosen by the user
         """
-        api_url = "https://api.modrinth.com/v2/tag/game_version"
+        api_url: str = "https://api.modrinth.com/v2/tag/game_version"
         data = requests.get(
             api_url, timeout=const.API_TIMEOUT, headers={"User-Agent": const.USER_AGENT}
         ).json()  # pretty much guaranteed to be 200
@@ -337,9 +337,11 @@ def get_mods(
     be appended to the real full_modlist list outside of the function
     """
     # initializing variables
-    loaders = download_context.modpack_config["mod_loader"]
-    version = download_context.modpack_config["version"]
-    valid_versions = download_context.modpack_config.get("valid_versions", "release")
+    mod_loader: str = download_context.modpack_config["mod_loader"]
+    version: str = download_context.modpack_config["version"]
+    valid_versions: list[str] = download_context.modpack_config.get(
+        "valid_versions", "release"
+    )
     # for dependencies the "slug" is an id
     if is_dependency:
         id = slugorid
@@ -358,7 +360,7 @@ def get_mods(
     # api calling
     api_url = f"https://api.modrinth.com/v2/project/{id}/version"
     api_params = {
-        "loaders": f'["{loaders.lower()}"]',
+        "loaders": f'["{mod_loader.lower()}"]',
         "game_versions": f'["{version}"]',
         "include_changelog": "false",
     }
@@ -651,7 +653,7 @@ def download_mods(
     ].get("auto_clear_jars")
     clear_folder = (
         questionary.confirm(
-            "Should we delete all .jar files in the minecraft mods folder path to remove duplicates? (RECOMMENDED)"
+            "Should we delete all .jar files in the minecraft mods folder path to remove duplicates?"
         )
         .skip_if(should_clear_folders, default=True)
         .ask()
