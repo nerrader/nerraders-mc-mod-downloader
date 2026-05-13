@@ -8,19 +8,23 @@
         {
             "name": "Sodium Extra",
             "value": "sodium-extra",
-            "loaders": ["fabric"]
+            "loaders": ["fabric", "neoforge"]
         },
         {
             "name": "Reese's Sodium Options",
             "value": "reeses-sodium-options",
-            "loaders": ["fabric"]
+            "loaders": ["fabric", "neoforge"]
         },
         {
-            "name": "Embeddium (Forge)",
+            "name": "Embeddium",
             "value": "embeddium",
             "loaders": ["forge", "neoforge"]
         },
-        { "name": "Canary (Forge)", "value": "canary", "loaders": ["forge"] },
+        {
+            "name": "Canary",
+            "value": "canary",
+            "loaders": ["forge"]
+        },
         {
             "name": "Debugify",
             "value": "debugify",
@@ -29,12 +33,12 @@
         {
             "name": "Bad Optimizations",
             "value": "badoptimizations",
-            "loaders": ["fabric"]
+            "loaders": ["fabric", "forge", "neoforge"]
         },
         {
             "name": "Packet Fixer",
             "value": "packet-fixer",
-            "loaders": ["fabric", "forge"]
+            "loaders": ["fabric", "forge", "neoforge"]
         },
         {
             "name": "ImmediatelyFast",
@@ -91,13 +95,21 @@
             "value": "vmp-fabric",
             "loaders": ["fabric"]
         },
-        { "name": "Ixeris", "value": "ixeris", "loaders": ["fabric"] },
+        {
+            "name": "Ixeris",
+            "value": "ixeris",
+            "loaders": ["fabric"]
+        },
         {
             "name": "Entity Culling",
             "value": "entityculling",
             "loaders": ["fabric", "forge", "neoforge"]
         },
-        { "name": "OptiGUI", "value": "optigui", "loaders": ["fabric"] },
+        {
+            "name": "OptiGUI",
+            "value": "optigui",
+            "loaders": ["fabric"]
+        },
         {
             "name": "ForceCloseWorldLoadingScreen",
             "value": "forcecloseworldloadingscreen",
@@ -108,13 +120,21 @@
             "value": "iris",
             "loaders": ["fabric", "neoforge"]
         },
-        { "name": "Oculus (Forge)", "value": "oculus", "loaders": ["forge"] },
+        {
+            "name": "Oculus (Forge)",
+            "value": "oculus",
+            "loaders": ["forge", "neoforge"]
+        },
         {
             "name": "Language Reload",
             "value": "language-reload",
             "loaders": ["fabric"]
         },
-        { "name": "[MP] Krypton", "value": "krypton", "loaders": ["fabric"] },
+        {
+            "name": "[MP] Krypton",
+            "value": "krypton",
+            "loaders": ["fabric"]
+        },
         {
             "name": "More Culling",
             "value": "moreculling",
@@ -162,7 +182,11 @@
             "value": "attack-through-grass",
             "loaders": ["fabric", "forge"]
         },
-        { "name": "Bactro Mod", "value": "bactromod", "loaders": ["fabric"] }
+        {
+            "name": "Bactro Mod",
+            "value": "bactromod",
+            "loaders": ["fabric"]
+        }
     ],
     "misc_mods": [
         {
@@ -192,11 +216,15 @@
         }
     ],
     "building_mods": [
-        { "name": "[DEV] Axiom", "value": "axiom", "loaders": ["fabric"] },
+        {
+            "name": "[DEV] Axiom",
+            "value": "axiom",
+            "loaders": ["fabric"]
+        },
         {
             "name": "Accurate Block Placement",
             "value": "accurate-block-placement-reborn",
-            "loaders": ["fabric", "forge"]
+            "loaders": ["fabric"]
         },
         {
             "name": "[DEV] Worldedit",
@@ -245,7 +273,11 @@
             "value": "visuality",
             "loaders": ["fabric", "forge"]
         },
-        { "name": "Blur+", "value": "blur-plus", "loaders": ["fabric"] },
+        {
+            "name": "Blur+",
+            "value": "blur-plus",
+            "loaders": ["fabric"]
+        },
         {
             "name": "Dynamic Lights",
             "value": "lambdynamiclights",
@@ -281,7 +313,11 @@
             "value": "better-snow-coverage",
             "loaders": ["fabric", "forge", "neoforge"]
         },
-        { "name": "Continuity", "value": "continuity", "loaders": ["fabric"] },
+        {
+            "name": "Continuity",
+            "value": "continuity",
+            "loaders": ["fabric"]
+        },
         {
             "name": "Fresh Animations",
             "value": "fresh-animations",
@@ -297,7 +333,11 @@
             "value": "explosive-enhancement",
             "loaders": ["fabric", "forge"]
         },
-        { "name": "Particular", "value": "particular", "loaders": ["fabric"] },
+        {
+            "name": "Particular",
+            "value": "particular",
+            "loaders": ["fabric"]
+        },
         {
             "name": "Particle Rain",
             "value": "particle-rain",
@@ -308,7 +348,11 @@
             "value": "amendments",
             "loaders": ["fabric", "forge", "neoforge"]
         },
-        { "name": "Effective", "value": "effective", "loaders": ["fabric"] },
+        {
+            "name": "Effective",
+            "value": "effective",
+            "loaders": ["fabric"]
+        },
         {
             "name": "Cave Dust",
             "value": "cave-dust",
@@ -329,13 +373,21 @@
             "value": "eating-animation",
             "loaders": ["fabric", "forge", "neoforge"]
         },
-        { "name": "Wakes", "value": "wakes", "loaders": ["fabric"] },
+        {
+            "name": "Wakes",
+            "value": "wakes",
+            "loaders": ["fabric"]
+        },
         {
             "name": "A Good Place",
             "value": "a-good-place",
             "loaders": ["fabric"]
         },
-        { "name": "Aurae", "value": "aurae", "loaders": ["fabric"] },
+        {
+            "name": "Aurae",
+            "value": "aurae",
+            "loaders": ["fabric"]
+        },
         {
             "name": "Clean Tooltips",
             "value": "clean-tooltips",
@@ -445,8 +497,16 @@
             "value": "door-knocking",
             "loaders": ["fabric", "forge", "neoforge"]
         },
-        { "name": "Sounds", "value": "sound", "loaders": ["fabric", "forge"] },
-        { "name": "Cool Rain", "value": "coolrain", "loaders": ["fabric"] },
+        {
+            "name": "Sounds",
+            "value": "sound",
+            "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "Cool Rain",
+            "value": "coolrain",
+            "loaders": ["fabric"]
+        },
         {
             "name": "Auditory Continued",
             "value": "auditory-continued",
@@ -481,8 +541,16 @@
         }
     ],
     "qol_mods": [
-        { "name": "Mod Menu", "value": "modmenu", "loaders": ["fabric"] },
-        { "name": "Zoomify", "value": "zoomify", "loaders": ["fabric"] },
+        {
+            "name": "Mod Menu",
+            "value": "modmenu",
+            "loaders": ["fabric"]
+        },
+        {
+            "name": "Zoomify",
+            "value": "zoomify",
+            "loaders": ["fabric"]
+        },
         {
             "name": "[S] Vanilla Refresh",
             "value": "vanilla-refresh",
@@ -503,7 +571,11 @@
             "value": "better-climbing",
             "loaders": ["fabric", "forge", "neoforge"]
         },
-        { "name": "Resourcify", "value": "resourcify", "loaders": ["fabric"] },
+        {
+            "name": "Resourcify",
+            "value": "resourcify",
+            "loaders": ["fabric"]
+        },
         {
             "name": "Easy Anvils",
             "value": "easy-anvils",
@@ -549,7 +621,11 @@
             "value": "better-than-mending",
             "loaders": ["fabric", "forge", "neoforge"]
         },
-        { "name": "[MP] Bobby", "value": "bobby", "loaders": ["fabric"] },
+        {
+            "name": "[MP] Bobby",
+            "value": "bobby",
+            "loaders": ["fabric"]
+        },
         {
             "name": "[SP] Distant Horizons",
             "value": "distanthorizons",
