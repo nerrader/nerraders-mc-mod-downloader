@@ -6,6 +6,7 @@ from threading import Lock
 from platformdirs import PlatformDirs, user_data_path
 from rich.theme import Theme
 from rich.console import Console
+from questionary import Style
 
 # rich module things
 CUSTOM_THEME = Theme(
@@ -38,3 +39,12 @@ CHUNK_SIZE = 16384
 # for every api request
 API_TIMEOUT = 10
 USER_AGENT = "https://github.com/nerrader/nerraders-mc-mod-downloader"
+
+QUESTIONARY_STYLE = Style(
+    [
+        ("disabled", "#858585"),  # Gray and italicized
+        ("selected", "fg:#00d7ff"),  # The color of the cursor/current item
+        ("highlighted", "fg:yellow"),  # The color of the active item
+        ("pointer", "fg:yellow bold"),  # The arrow pointer
+    ]
+)

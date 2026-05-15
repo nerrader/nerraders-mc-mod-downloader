@@ -1,8 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from copy import deepcopy
 from dataclasses import dataclass, field
-from glob import glob
-import os
 from pathlib import Path
 from sys import exit
 from typing import Any
@@ -22,10 +19,7 @@ from rich.progress import (
 from rich.table import Table
 
 # builder for tool initialization, creating required appdata folders and stuff like that
-from mc_mods_downloader import builder
-
-# global variables initialization, global variables (constants) have to start with const.
-from mc_mods_downloader import constants as const
+from mc_mods_downloader import builder, constants as const, config
 
 # overriding default print with rich print
 print = const.CONSOLE.print
@@ -33,7 +27,7 @@ print = const.CONSOLE.print
 
 @dataclass
 class DownloadContext:
-    modpack_config: dict[str, Any]
+    modpack_config: config.Config
     id_slug_map: dict[str, str]
     visited_mod_ids: set[str] = field(default_factory=set, repr=False)
     full_modlist: list[dict[str, str]] = field(default_factory=list)
@@ -41,179 +35,77 @@ class DownloadContext:
     dependency_mods_counter: int = field(default=0)
 
 
-def configure_settings(config: dict[str, Any]):
-    """configure settings buddy
+def _get_mod_choices(
+    initial_modlist: list[str],
+    current_loader: str,
+    mods_in_category: list[dict[str, Any]],
+) -> list[questionary.Choice]:
+    """
+    NOTE: This function is a helper function for main_menu()
+
+    This gets the appropriate mod choices for the checkbox selection prompt according
+    to the current loader.
 
     Args:
-        config (dict[str, Any]): the config to edit, its usually the one in config.json (what else)
+        initial_modlist (list[str]): The initial modlist.
+        current_loader (str): The current mod loader the user is using, used to filter out
+        mods that are incompatible with the loader.
+        mods_in_category (list[dict[str, Any]]): The mods that are appropriate to the user's
+        choosing category.
+
+    Returns:
+        list[questionary.Choice]: The list of mods that are able to be chosen.
     """
-
-    def change_minecraft_version() -> str:
-        """uses modrinth api to find the current minecraft game versions, then
-        uses a questionary autocomplete prompt to see what the user wants
-
-        Returns:
-            str: the game version chosen by the user
-        """
-        api_url: str = "https://api.modrinth.com/v2/tag/game_version"
-        data = requests.get(
-            api_url, timeout=const.API_TIMEOUT, headers={"User-Agent": const.USER_AGENT}
-        ).json()  # pretty much guaranteed to be 200
-        minecraft_versions = [
-            version["version"]
-            for version in data
-            if version["version_type"] == "release"
-        ]
-        print("Tip: Press Tab to enable autocomplete", style="warning")
-        selected_version = questionary.autocomplete(
-            "Type your minecraft version (e.g. 1.21): ",
-            choices=minecraft_versions,
-            default=minecraft_versions[0],  # latest version
-        ).ask()
-        return selected_version
-
-    def change_mod_loader() -> str:
-        """uses questionary to find what mod loader the user wants to choose
-
-        Returns:
-            str: the mod loader chosen by the user
-        """
-        print("Note that all Quilt users can use Fabric mods.", style="info")
-        selected_mod_loader = questionary.select(
-            "Choose your mod loader:", choices=("Fabric", "NeoForge", "Forge")
-        ).ask()
-        return selected_mod_loader
-
-    def select_valid_versions() -> list[str]:
-        """select which versions of mods are allowed (alpha, beta, release/stable)
-
-        Returns:
-            list[str]: selected versions
-        """
-        selected_valid_versions = questionary.checkbox(
-            "Which mod versions do you allow?",
-            choices=(
-                questionary.Choice(
-                    title="Release (Stable)",
-                    value="release",
-                    checked="release" in config.get("valid_versions", []),
-                ),
-                questionary.Choice(
-                    title="Beta (Testing)",
-                    value="beta",
-                    checked="beta" in config.get("valid_versions", []),
-                ),
-                questionary.Choice(
-                    title="Alpha (Early Development, NOT RECOMMENDED)",
-                    value="alpha",
-                    checked="alpha" in config.get("valid_versions", []),
-                ),
-            ),
-            default="release",
-        ).ask()
-        return selected_valid_versions
-
-    def change_default_path() -> str:
-        """change the default path for the modpack download path, changing this will
-        remove the prompts to ask for your path during the downloading so it better
-        be correct
-
-        Returns:
-            str: the selected folder path by the user
-        """
-        print(
-            "Note that changing this setting will remove the pathing prompt when downloading",
-            style="warning",
+    return [
+        questionary.Choice(
+            title=mod["name"],
+            value=mod["value"],
+            checked=mod["value"] in initial_modlist,
+            disabled=None
+            if current_loader.lower() in mod["loaders"]
+            else f"Requires {mod['loaders']}",
         )
-        print(
-            "Tip: You can copy and paste the path from the file explorer search bar",
-            style="warning",
-        )
-        selected_folder_path = questionary.path(
-            "Change Default Mods Path: (press tab)", default=""
-        ).ask()
-        return selected_folder_path
+        for mod in mods_in_category
+    ]
 
-    def change_behaviour_settings() -> dict[str, bool]:
-        """behaviour settings are basically just the true/false value settings
-        returns None as the changes happen inside this function directly
-        """
-        # gets the current behaviour settings
-        new_behaviour_settings: dict[str, bool] = config["behaviour_settings"]
-        while True:
-            behaviour_settings_chioces = (
-                questionary.Choice(
-                    title=f"Skip .jar files Deletion Confirmation [{new_behaviour_settings['auto_clear_jars']}]",
-                    value="auto_clear_jars",
-                ),
-                questionary.Choice(
-                    title=f"Show Detailed Logs [{new_behaviour_settings['show_detailed_logs']}]",
-                    value="show_detailed_logs",
-                ),
-                questionary.Choice(title="Go Back", value="back"),
-            )
 
-            selection = questionary.select(
-                "Behaviour Settings",
-                choices=behaviour_settings_chioces,
-                default=None,
-            ).ask()
-            if selection == "back" or selection is None:
-                return new_behaviour_settings
-            else:
-                new_behaviour_settings[selection] = not new_behaviour_settings[
-                    selection
-                ]
+def _handle_category_selection(
+    category_name: str,
+    mods_in_category: list[dict[str, str]],
+    current_config: config.Config,
+    initial_modlist: list[str],
+) -> list[str]:
+    mod_choices = _get_mod_choices(
+        initial_modlist, current_config.mod_loader, mods_in_category
+    )
 
-    def main_settings_loop(original_config: dict[str, Any]) -> dict[str, Any]:
-        """the main menu, where the user selects a thing to change"""
-        new_config = deepcopy(original_config)
-        while True:
-            choice = questionary.select(
-                "Settings Menu",
-                choices=(
-                    "Change Minecraft Version",
-                    "Change Mod Loader",
-                    "Select Valid Versions",
-                    "Set Default Folder Path",
-                    "Behaviour Settings",
-                    questionary.Separator(),
-                    "Exit and Save",
-                    "Reset Settings to Default",
-                    "Cancel",
-                ),
-            ).ask()
-            match choice:
-                case "Change Minecraft Version":
-                    new_config["version"] = change_minecraft_version()
-                case "Change Mod Loader":
-                    new_config["mod_loader"] = change_mod_loader()
-                case "Select Valid Versions":
-                    new_config["valid_versions"] = select_valid_versions()
-                case "Set Default Folder Path":
-                    new_config["mods_directory"] = change_default_path()
-                case "Behaviour Settings":
-                    new_config["behaviour_settings"] = change_behaviour_settings()
-                case "Reset Settings to Default":
-                    new_config = builder.get_default_config()
-                case "Exit and Save":
-                    builder.save_config(new_config)
-                    return new_config
-                case "Cancel":
-                    return original_config
+    selection = questionary.checkbox(
+        message=f"Choose mods from {category_name}",
+        choices=mod_choices,
+        style=const.QUESTIONARY_STYLE,
+    ).ask()
 
-    new_config = main_settings_loop(config)
-    return new_config
+    # for every mod in everything the user has selected so far,
+    # remove every mod that is in the category that the user is in
+    modvalues_in_category: set[str] = {mod["value"] for mod in mods_in_category}
+    initial_modlist = [
+        mod for mod in initial_modlist if mod not in modvalues_in_category
+    ]
+    # then readd it back using this
+    # this is to avoid duplicates and allow for deletion
+    initial_modlist.extend(selection or [])
+
+    return initial_modlist
 
 
 def main_menu(
-    current_config: dict, json_modlist_data: dict[str, list]
-) -> tuple[list[str], dict]:
+    current_config: config.Config, json_modlist_data: dict[str, list]
+) -> tuple[list[str], config.Config]:
     """displays a questionary type ui to choose minecraft mods based off whats in mods.json, also where you configure settings
 
     Args:
-        current_config (dict): The config, which could be changed in the configure_settings()
-        json_modlist_data (dict[str, list]): The mods.json loaded from the builder.py
+        current_config (config.Config): The config, which could be changed in the configure_settings().
+        json_modlist_data (dict[str, list]): The mods.json loaded from the builder.py.
     Returns:
         tuple: to wrap both of them into a sort of list
 
@@ -221,12 +113,11 @@ def main_menu(
         (needed for putting it through the modrinth api later in get_mods(),
         it is not the final list used in download_mods(),
 
-        dict: the modpack_config (if they used configure_settings)
-
+        config.Config: the modpack_config (if they used configure_settings)
     """
     initial_modlist: list[str] = []
 
-    category_map = {
+    category_map: dict[str, str] = {
         "Optimization & Performance": "optimization_mods",
         "PVP & Combat": "pvp_mods",
         "HUD & Info": "hud_mods",
@@ -243,16 +134,19 @@ def main_menu(
     }
 
     while True:
-        category_choice = questionary.select(
-            "Choose a category to browse mods", choices=(list(category_map.keys()))
+        category_choice: str = questionary.select(
+            "Choose a category to browse mods",
+            choices=list(category_map.keys()),
+            style=const.QUESTIONARY_STYLE,
         ).ask()
-        json_key = category_map[category_choice]
+        category_map_value = category_map[category_choice]
 
-        match json_key:
+        match category_map_value:
             case "exit and save":
                 return (initial_modlist, current_config)
             case "settings":
-                current_config = configure_settings(current_config)
+                # new config basically
+                current_config = config.main_settings_loop(current_config)
                 continue
             case "clear":
                 initial_modlist = []
@@ -260,32 +154,14 @@ def main_menu(
             case "cancel":
                 exit(0)
 
-        mods_in_category: list[dict[str, str]] = json_modlist_data.get(json_key, [])
-        modvalues_in_category: set[str] = {mod["value"] for mod in mods_in_category}
+        mods_in_category: list[dict[str, str]] = json_modlist_data[category_map_value]
 
-        mod_choices = [
-            {
-                "name": mod["name"],
-                "value": mod["value"],
-                "checked": mod["value"] in initial_modlist,
-            }
-            for mod in mods_in_category
-            if current_config["mod_loader"].lower() in mod["loaders"]
-        ]
-
-        selection = questionary.checkbox(
-            message=f"Choose mods from {category_choice}", choices=mod_choices
-        ).ask()
-
-        # for every mod in everything the user has selected so far,
-        # remove every mod that is in the category that the user is in
-        initial_modlist = [
-            mod for mod in initial_modlist if mod not in modvalues_in_category
-        ]
-        # then readd it back using this
-        # this is to avoid duplicates and allow for deletion
-        if selection is not None:
-            initial_modlist += selection
+        initial_modlist = _handle_category_selection(
+            category_choice,
+            mods_in_category,
+            current_config,
+            initial_modlist,
+        )
 
 
 def slug_to_id(target_slug: str, id_slug_map: dict[str, str]) -> str:
@@ -337,11 +213,9 @@ def get_mods(
     be appended to the real full_modlist list outside of the function
     """
     # initializing variables
-    mod_loader: str = download_context.modpack_config["mod_loader"]
-    version: str = download_context.modpack_config["version"]
-    valid_versions: list[str] = download_context.modpack_config.get(
-        "valid_versions", "release"
-    )
+    mod_loader: str = download_context.modpack_config.mod_loader
+    version: str = download_context.modpack_config.version
+    valid_versions: list[str] = download_context.modpack_config.valid_versions
     # for dependencies the "slug" is an id
     if is_dependency:
         id = slugorid
@@ -364,7 +238,10 @@ def get_mods(
         "game_versions": f'["{version}"]',
         "include_changelog": "false",
     }
-    response = api_session.get(api_url, params=api_params, timeout=const.API_TIMEOUT)
+    api_headers = {"User-Agent": const.USER_AGENT}
+    response = api_session.get(
+        api_url, params=api_params, headers=api_headers, timeout=const.API_TIMEOUT
+    )
     data = response.json()
     if response.status_code != 200:
         download_context.failed_mods.append(
@@ -411,17 +288,8 @@ def get_mods(
         "url": target_url,
     }
     collected_mods.append(mod_data)
-    # it is a dependency, visual jukebox forgot to add the polymer in their dependencies
-    if slug == "visual-jukebox":
-        polymer_mod_data = get_mods(
-            slug_to_id("polymer", download_context.id_slug_map),
-            api_session,
-            download_context,
-            is_dependency=True,
-        )
-        collected_mods.extend(polymer_mod_data)
 
-    # dependency search thingyu
+    # dependency search thingy
     dependencies = [
         dependency
         for dependency in latest_version.get("dependencies", [])
@@ -452,17 +320,17 @@ def get_mods(
     return collected_mods
 
 
-def clear_jar_files(directory_path: str | Path) -> None:
+def clear_jar_files(directory_path: Path) -> None:
     """clears .jar files in the mod directory where they download mods
     this is to prevent duplicates and weird glitches and stuff and outdated mods
 
     Args:
         directory_path (str | Path): the directory path where the mods are installed
     """
-    files = glob(os.path.join(directory_path, "*.jar"))
+    files = directory_path.glob("*.jar")
     for file in files:
         try:
-            os.remove(file)
+            file.unlink()
         except Exception as error:
             print(f"Could not remove {file}: {error}", style="error")
 
@@ -547,13 +415,15 @@ def _get_modpack_folder(launcher_path: Path) -> Path:
 
     if not directories:
         modpack_name = questionary.text(
-            "What should the name of the new modpack be?"
+            "What should the name of the new modpack be?",
+            style=const.QUESTIONARY_STYLE,
         ).ask()
         return launcher_path / modpack_name / "mods"
 
     modpack_choice = questionary.select(
         "Which modpack do you want your mods to be downloaded in?",
         choices=directories + [questionary.Separator(), "Create New Modpack Folder"],
+        style=const.QUESTIONARY_STYLE,
     ).ask()
     if modpack_choice != "Create New Modpack Folder":
         return launcher_path / modpack_choice / "mods"
@@ -571,8 +441,8 @@ def get_download_folder_path(download_context: DownloadContext) -> Path:
         str: folder path
     """
     # checks if they already have a default path in their settings/config.json
-    if download_context.modpack_config.get("mods_directory"):  # if not empty
-        return download_context.modpack_config["mods_directory"]
+    if download_context.modpack_config.mods_directory is not None:  # if not empty
+        return download_context.modpack_config.mods_directory
 
     while True:
         launcher_path, is_manual_path = _get_selected_launcher_path()
@@ -616,8 +486,8 @@ def enter_manual_path(prompt: str) -> Path:
         style="warning",
     )
     while True:
-        folder_path_str = questionary.path(
-            prompt,
+        folder_path_str: str = questionary.path(
+            prompt, style=const.QUESTIONARY_STYLE
         ).ask()
         if folder_path_str is None or folder_path_str.lower() in ["exit", "quit", "q"]:
             exit("Error: No folder path provided.")
@@ -647,10 +517,10 @@ def download_mods(
 
     # clear files first before downloading or not
     modpack_folderpath = get_download_folder_path(download_context)
-    os.makedirs(modpack_folderpath, exist_ok=True)
-    should_clear_folders: bool = download_context.modpack_config[
-        "behaviour_settings"
-    ].get("auto_clear_jars")
+    modpack_folderpath.mkdir(parents=True, exist_ok=True)
+    should_clear_folders: bool = (
+        download_context.modpack_config.behaviour_settings.auto_clear_jars
+    )
     clear_folder = (
         questionary.confirm(
             "Should we delete all .jar files in the minecraft mods folder path to remove duplicates?"
@@ -686,7 +556,7 @@ def download_mods(
         def download_one_mod(target_mod) -> None:
             """just so the threadpoolexecutor works well so the async nature works
             basically it takes one mod from the full_modlist and downloads it"""
-            download_path = os.path.join(modpack_folderpath, target_mod.get("filename"))
+            download_path = modpack_folderpath / target_mod.get("filename")
             url = target_mod.get("url")
             if not url:
                 print(f"{target_mod} has no url!")
@@ -746,22 +616,26 @@ def get_download_summary(download_context: DownloadContext) -> None:
 def main() -> None:
     # getting the json files
     mods_json, id_slug_map, modpack_config = builder.main()
+
     # now the program starts
-    initial_modlist, config_update = main_menu(modpack_config, mods_json)
-    modpack_config.update(config_update)
+    initial_modlist, new_modpack_config = main_menu(modpack_config, mods_json)
+    download_context = DownloadContext(new_modpack_config, id_slug_map)
+
     # session so the tcp connection doesnt reset
-    download_context = DownloadContext(modpack_config, id_slug_map)
     with requests.Session() as api_session:
         api_session.headers.update({"User-Agent": const.USER_AGENT})
+
         # threadpoolexecutor to allow multiple thread execution (async pretty much)
         with ThreadPoolExecutor() as executor:
             results = executor.map(
                 lambda mod: get_mods(mod, api_session, download_context),
                 initial_modlist,
             )
+
             for mod_data in results:
                 if mod_data is not None:
                     download_context.full_modlist.extend(mod_data)
+
         download_mods(download_context.full_modlist, api_session, download_context)
         get_download_summary(download_context)
         input("Press Enter to Exit")

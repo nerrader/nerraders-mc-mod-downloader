@@ -1,10 +1,9 @@
 import json
-from os import makedirs
 from typing import Any
 
 import requests
 
-from mc_mods_downloader import constants as const
+from mc_mods_downloader import constants as const, config, storage
 
 # global constants
 print = const.CONSOLE.print
@@ -38,8 +37,7 @@ def get_mods_json(api_session: requests.Session) -> bool:
         )
     data = response.json()
 
-    with open(const.MODS_FILEPATH, "w") as file:
-        json.dump(data, file, indent=4)
+    storage.write_json(const.MODS_FILEPATH, data)
     if "ETag" in response.headers:
         etag_filepath.write_text(response.headers["ETag"])
     print("Successfully made mods.json")
@@ -54,16 +52,15 @@ def get_slugslist() -> list[str]:  # only slugs, no ids
         list[str]: The list of slugs
     """
     slugslist: list[str] = []
-    with open(const.MODS_FILEPATH) as file:
-        modslist = json.load(file)
-        for category, category_mods in modslist.items():
-            if category == "library_mods":
-                for mod in category_mods:
-                    slugslist.append(mod)
-            else:
-                for mod in category_mods:
-                    slugslist.append(mod.get("value", mod))
-        return slugslist
+    modslist = storage.load_json(const.MODS_FILEPATH)
+    for category, category_mods in modslist.items():
+        if category == "library_mods":
+            for mod in category_mods:
+                slugslist.append(mod)
+        else:
+            for mod in category_mods:
+                slugslist.append(mod.get("value", mod))
+    return slugslist
 
 
 def modify_slugsmap(slugslist: list[str], api_session: requests.Session) -> None:
@@ -94,51 +91,6 @@ def get_slugsidmap(api_session: requests.Session) -> None:
     modify_slugsmap(get_slugslist(), api_session)
 
 
-def get_default_config(api_session: requests.Session | None = None) -> dict:
-    """it generates a default config for those who dont have a config.json yet,
-
-    params:
-    api_session: a requests.Session object which is used to optimize performance, if none is
-    given, use the regular requests.get() function
-
-    returns:
-    dict: the default_config returned, usually passed into save_config() to save it
-
-    uses modrinth api to get the latest minecraft version for the version property"""
-    api_url = "https://api.modrinth.com/v2/tag/game_version"
-    requests_session = api_session or requests
-    headers = {"User-Agent": const.USER_AGENT} if not api_session else None
-    data = requests_session.get(
-        api_url, timeout=const.API_TIMEOUT, headers=headers
-    ).json()
-    # pretty much guaranteed to succeed unless bad internet or server crash, so no try except
-    minecraft_versions = [
-        version["version"] for version in data if version["version_type"] == "release"
-    ]
-    latest_minecraft_version = minecraft_versions[0]
-    default_config = {
-        "version": latest_minecraft_version,
-        "mod_loader": "fabric",
-        "valid_versions": ["release"],
-        "mods_directory": "",
-        "behaviour_settings": {
-            "auto_clear_jars": False,
-            "show_detailed_logs": False,
-        },
-    }
-    return default_config
-
-
-def save_config(config: dict) -> None:
-    """saves the config
-
-    Args:
-        config (dict): the config that you want to save
-    """
-    with open(const.CONFIG_FILEPATH, "w") as file:
-        json.dump(config, file, indent=4)
-
-
 def checkup_files(api_session: requests.Session) -> None:
     """checks up on the config and idslugmap json files, resets them to defaults if somethings wrong
     updates the idslugmap.json if mods.json is updated/changed
@@ -151,11 +103,12 @@ def checkup_files(api_session: requests.Session) -> None:
     """
     # config.json checkup
     try:
-        with open(const.CONFIG_FILEPATH) as file:
-            json.load(file)  # will raise an error if empty, and also if doesnt exist
-    except (json.JSONDecodeError, FileNotFoundError):
+        storage.load_json(const.CONFIG_FILEPATH)
+        # with open(const.CONFIG_FILEPATH) as file:
+        #     json.load(file)  # will raise an error if empty, and also if doesnt exist
+    except (json.decoder.JSONDecodeError, FileNotFoundError):
         print("Could not load config.json, setting to defaults")
-        save_config(get_default_config(api_session))
+        config.get_default_config(api_session).save_configs()
 
     # idslugmap.json checkup, should update or not
     try:
@@ -176,9 +129,8 @@ def checkup_files(api_session: requests.Session) -> None:
         ) from error
 
 
-def main() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-
-    makedirs(const.MAIN_DATA_FILEPATH, exist_ok=True)
+def main() -> tuple[dict[str, Any], dict[str, Any], config.Config]:
+    const.MAIN_DATA_FILEPATH.mkdir(parents=True, exist_ok=True)
     # checks if config.json is real
     with requests.Session() as session:
         session.headers.update({"User-Agent": const.USER_AGENT})
@@ -186,19 +138,14 @@ def main() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
             checkup_files(session)
             # loading the file contents for returning
             try:
-                with (
-                    open(const.CONFIG_FILEPATH) as config_json,
-                    open(const.IDSLUGMAP_FILEPATH) as idslugmap_json,
-                    open(const.MODS_FILEPATH) as mods_json,
-                ):
-                    return (
-                        json.load(mods_json),
-                        json.load(idslugmap_json),
-                        json.load(config_json),
-                    )
+                mods = storage.load_json(const.MODS_FILEPATH)
+                idslugmap = storage.load_json(const.IDSLUGMAP_FILEPATH)
+                configs = config.Config.load_configs()
+
+                return (mods, idslugmap, configs)
             except Exception as error:
                 print(f"Something happened: {error}, resetting files to defaults")
-                save_config(get_default_config(session))
+                config.get_default_config().save_configs()
                 get_mods_json(session)
                 get_slugsidmap(session)
 

@@ -91,7 +91,7 @@
             "loaders": ["fabric", "forge", "neoforge"]
         },
         {
-            "name": "[MP] Very Manny Players (Fabric)",
+            "name": "[MP] Very Manny Players",
             "value": "vmp-fabric",
             "loaders": ["fabric"]
         },
@@ -121,7 +121,7 @@
             "loaders": ["fabric", "neoforge"]
         },
         {
-            "name": "Oculus (Forge)",
+            "name": "Oculus",
             "value": "oculus",
             "loaders": ["forge", "neoforge"]
         },
