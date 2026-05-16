@@ -101,7 +101,7 @@ def _handle_category_selection(
 def main_menu(
     current_config: config.Config, json_modlist_data: dict[str, list]
 ) -> tuple[list[str], config.Config]:
-    """displays a questionary type ui to choose minecraft mods based off whats in mods.json, also where you configure settings
+    """Displays a questionary UI to choose mods and configure settings.
 
     Args:
         current_config (config.Config): The config, which could be changed in the configure_settings().
@@ -113,7 +113,7 @@ def main_menu(
         (needed for putting it through the modrinth api later in get_mods(),
         it is not the final list used in download_mods(),
 
-        config.Config: the modpack_config (if they used configure_settings)
+        config.Config: the modpack_config
     """
     initial_modlist: list[str] = []
 
@@ -145,7 +145,6 @@ def main_menu(
             case "exit and save":
                 return (initial_modlist, current_config)
             case "settings":
-                # new config basically
                 current_config = config.main_settings_loop(current_config)
                 continue
             case "clear":
@@ -165,15 +164,11 @@ def main_menu(
 
 
 def slug_to_id(target_slug: str, id_slug_map: dict[str, str]) -> str:
-    """converts the target slug into the id (id from modrinth)
-    this is mainly for consistency purposes as slugs can change while ids cant
-    if it wasnt obvious enough this is done by using idslugmap.json
-
-    Args:
-        target_slug (str): target slug
+    """Converts the target mod slug to the corresponding mod ID.
+    This function is usually used to retain consistency as mod slugs can change, while IDs cannot.
 
     Returns:
-        str: the id attached to the slug
+        str: The ID of the slug.
     """
     id = next(
         (id for id, slug in id_slug_map.items() if slug == target_slug),
@@ -186,126 +181,88 @@ def slug_to_id(target_slug: str, id_slug_map: dict[str, str]) -> str:
     return id
 
 
-def get_mods(
-    slugorid: str,
-    api_session: requests.Session,
+def _fetch_mod_data(
+    mod_id,
     download_context: DownloadContext,
-    is_dependency=False,
-) -> list[dict[str, str]]:
-    """gets the mods from initial modlist, puts them in modrinth api to get the mods download url and filename
-    for the download section. also checks the mod for any required dependencies and downloads them recursively.
-    dependencies installed have is_dependency set to True for obvious reasons. the mod and dependencies will later
-    be returned in a nested list format (look at returns section)
-
-    Args:
-        slugorid (str): the slug/id of the mod, immediately turned into seperate slug and id variables
-        where ids are used for the api requests and slugs for debugging and printing out console stuff
-
-        is_dependency (bool, optional): if the mod is a dependency (installed because the other mods need it)
-        we need it because dependencies are using ids for slugorid, and regular mods are using the slug,
-        so we can make the id and slug different variables
-        Defaults to False.
-
-        api_session: just the api session being used, dont worry about it
-
-    returns: list[dict[str, str]]: either an empty list (when the mod fails, so extend() doesnt crash), or an
-    actual list of mod data. basically now the mod and its dependencies get added to a list in which it will later
-    be appended to the real full_modlist list outside of the function
-    """
-    # initializing variables
+    api_session: requests.Session | None = None,
+) -> list[dict[str, Any]]:
     mod_loader: str = download_context.modpack_config.mod_loader
     version: str = download_context.modpack_config.version
-    valid_versions: list[str] = download_context.modpack_config.valid_versions
-    # for dependencies the "slug" is an id
-    if is_dependency:
-        id = slugorid
-        slug = download_context.id_slug_map[id]
-    # turn everything into an id for consistency
-    else:
-        id = slug_to_id(slugorid, download_context.id_slug_map)
-        slug = slugorid
-    # so we dont have to do an api call if weve done the mod before
-    with const.THREADING_LOCK:
-        if not id or id in download_context.visited_mod_ids:
-            return []
 
-        download_context.visited_mod_ids.add(id)
-    # put id in instead for consistency, slugs can change while ids cant
-    # api calling
-    api_url = f"https://api.modrinth.com/v2/project/{id}/version"
+    api_url = f"https://api.modrinth.com/v2/project/{mod_id}/version"
     api_params = {
         "loaders": f'["{mod_loader.lower()}"]',
         "game_versions": f'["{version}"]',
         "include_changelog": "false",
     }
     api_headers = {"User-Agent": const.USER_AGENT}
-    response = api_session.get(
+    session = api_session or requests
+    response: requests.Response = session.get(
         api_url, params=api_params, headers=api_headers, timeout=const.API_TIMEOUT
     )
+    response.raise_for_status()
     data = response.json()
-    if response.status_code != 200:
-        download_context.failed_mods.append(
-            {"slug": slug, "cause": f"status code {response.status_code}"}
-        )
-        return []
-    elif len(data) == 0:
-        download_context.failed_mods.append(
-            {"slug": slug, "cause": f"no files for version {version}"}
-        )
-        return []
+    if len(data) == 0:
+        raise ValueError(f"No files available for {version}")
+    return data
 
-    # filters data and versions
 
-    latest_version = [  # filters out all versions not allowed in valid versions (usually alpha/beta versions)
-        version for version in data if version.get("version_type") in valid_versions
+def _find_latest_mod_version(
+    mod_api_data: list[dict[str, Any]], valid_version_types: list[str]
+):
+    valid_mod_versions = [
+        version
+        for version in mod_api_data
+        if version.get("version_type") in valid_version_types
     ]
 
-    if not latest_version:
-        download_context.failed_mods.append(
-            {"slug": slug, "cause": f"mod doesnt have any {valid_versions} releases"}
-        )
-        return []
-    latest_version = latest_version[0]  # the actual latest version
+    if not valid_mod_versions:
+        raise ValueError(f"Mod does not have any {valid_version_types} releases.")
+    return valid_mod_versions[0]
+
+
+def _find_latest_mod_file_data(latest_version: dict[str, Any]) -> tuple[str, str]:
+    if not (files := latest_version.get("files")):
+        raise ValueError("Target mod version contains no files.")
 
     target_file = next(  # look at files, find the latest one that is a primary file
-        (file for file in latest_version.get("files", []) if file.get("primary")),
-        latest_version["files"][0],
+        (file for file in files if file.get("primary")),
+        files[0],
     )
-    target_filename = target_file["filename"]
-    target_url = target_file["url"]
 
-    if not target_filename or not target_url:
-        download_context.failed_mods.append(
-            {"slug": slug, "cause": "the url and filename doesnt exist for some reason"}
-        )
-        return []
+    if not (target_filename := target_file["filename"]) or not (
+        target_url := target_file["url"]
+    ):
+        raise ValueError("Target mod has no filename or download URL")
+    return (target_filename, target_url)
 
-    # collected mods thingy
-    collected_mods: list[dict[str, str]] = []
-    mod_data = {
-        "slug": slug,
-        "filename": target_filename,
-        "url": target_url,
-    }
-    collected_mods.append(mod_data)
 
-    # dependency search thingy
+def _resolve_dependencies(
+    latest_version: dict[str, Any],
+    api_session: requests.Session,
+    download_context: DownloadContext,
+) -> list[dict[str, str]]:
+    """Parses required dependencies and recursively fetches their download data."""
+    resolved_dependencies: list[dict[str, str]] = []
+
     dependencies = [
-        dependency
-        for dependency in latest_version.get("dependencies", [])
-        if dependency.get("dependency_type") == "required"
+        dep
+        for dep in latest_version.get("dependencies", [])
+        if dep.get("dependency_type") == "required"
     ]
+
     for dependency in dependencies:
+        if not (dependency_project_id := dependency.get("project_id")):
+            continue
+        # Threading lock check is handled safely inside the next get_mods recursive call
         try:
-            dependency_project_id: str = dependency.get("project_id")
-            if dependency_project_id not in download_context.visited_mod_ids:
-                new_dependency = get_mods(
-                    dependency_project_id,
-                    api_session,
-                    download_context,
-                    is_dependency=True,
-                )
-                collected_mods.extend(new_dependency)
+            new_dependencies = get_mods(
+                dependency_project_id,
+                api_session,
+                download_context,
+            )
+            if new_dependencies:
+                resolved_dependencies.extend(new_dependencies)
                 download_context.dependency_mods_counter += 1
 
         except Exception as error:
@@ -317,6 +274,64 @@ def get_mods(
                 f"Link: https://modrinth.com/mod/{dependency_project_id}",
                 style="warning",
             )
+
+    return resolved_dependencies
+
+
+def get_mods(
+    mod_id: str,
+    api_session: requests.Session,
+    download_context: DownloadContext,
+) -> list[dict[str, str]] | list:
+    """Recursively fetches download metadata for a mod (mod_id) and its required dependencies.
+
+    returns: list[dict[str, str]]: A list of dictionaries, each containing 'slug', 'filename', and 'url'
+        attributes for the target mod and any found dependencies.
+        Returns an empty list if data resolution or network requests fail. (so .extend() doesn't crash)
+    """
+    # initializing variables
+
+    mod_slug = download_context.id_slug_map[mod_id]
+
+    # to prevent race conditions, we need a threading lock
+    with const.THREADING_LOCK:
+        if not mod_id or mod_id in download_context.visited_mod_ids:
+            return []
+
+        download_context.visited_mod_ids.add(mod_id)
+
+    # put id in instead for consistency, slugs can change while ids cant
+    try:
+        data = _fetch_mod_data(mod_id, download_context, api_session)
+        latest_version = _find_latest_mod_version(
+            data, download_context.modpack_config.valid_versions
+        )
+        target_filename, target_url = _find_latest_mod_file_data(latest_version)
+    except requests.HTTPError as error:
+        response_code = (
+            error.response.status_code if error.response is not None else "Unknown"
+        )
+        download_context.failed_mods.append(
+            {"slug": mod_slug, "cause": f"API HTTP Error Status: {response_code}"}
+        )
+        return []
+    except ValueError as error:
+        download_context.failed_mods.append({"slug": mod_slug, "cause": str(error)})
+        return []
+
+    collected_mods: list[dict[str, str]] = []
+    mod_data = {
+        "slug": mod_slug,
+        "filename": target_filename,
+        "url": target_url,
+    }
+    collected_mods.append(mod_data)
+
+    # dependency search thingy
+    resolved_dependencies = _resolve_dependencies(
+        latest_version, api_session, download_context
+    )
+    collected_mods.extend(resolved_dependencies)
     return collected_mods
 
 
@@ -403,7 +418,7 @@ def _get_selected_launcher_path() -> tuple[Path, bool]:
 
 
 def _get_modpack_folder(launcher_path: Path) -> Path:
-    """WARNING: THIS FUNCITON IS ONLY MEANT TO BE USED IN get_download_folder_path()!!!!!
+    """NOTE: This function is a helper function for get_download_folder_path()
 
     Args:
         launcher_path (Path): launcher path given by the other helper function, _get_selected_launcher_path()
@@ -477,7 +492,7 @@ def enter_manual_path(prompt: str) -> Path:
     Returns:
         Path: The path object returned by this function
 
-    This funciton can also exit out of the program if the user cancels the manual filepath prompt,
+    This function can also exit out of the program if the user cancels the manual filepath prompt,
     as the program cannot function if there is no path given to download the mods.
     """
     # not really a warning but i think yellow fits here so
@@ -487,9 +502,10 @@ def enter_manual_path(prompt: str) -> Path:
     )
     while True:
         folder_path_str: str = questionary.path(
-            prompt, style=const.QUESTIONARY_STYLE
+            prompt,
+            style=const.QUESTIONARY_STYLE,
         ).ask()
-        if folder_path_str is None or folder_path_str.lower() in ["exit", "quit", "q"]:
+        if folder_path_str is None or folder_path_str.lower() in ("exit", "quit", "q"):
             exit("Error: No folder path provided.")
 
         folder_path = Path(folder_path_str)
@@ -507,23 +523,19 @@ def download_mods(
     api_session: requests.Session,
     download_context: DownloadContext,
 ) -> None:
-    """downloads the mods in the modlist using the api, also has progress bars, top one is the main one
-    where it tracks how many mods have been downloaded, and the other ones are sub-progress bars where it
-    shows how much of the mods file contents have been downloaded
-    Args:
-        modlist (list[dict[str, str]]): the modlist in which the function uses to download the mods
-        api_session: dont worry about it, its just the api session
+    """
+    Downloads mods in the modlist by fetching data from the mod's link. Also has progress bars.
     """
 
     # clear files first before downloading or not
-    modpack_folderpath = get_download_folder_path(download_context)
+    modpack_folderpath: Path = get_download_folder_path(download_context)
     modpack_folderpath.mkdir(parents=True, exist_ok=True)
     should_clear_folders: bool = (
         download_context.modpack_config.behaviour_settings.auto_clear_jars
     )
     clear_folder = (
         questionary.confirm(
-            "Should we delete all .jar files in the minecraft mods folder path to remove duplicates?"
+            "Delete all .jar files in the minecraft mods folder path to remove duplicates?"
         )
         .skip_if(should_clear_folders, default=True)
         .ask()
@@ -557,8 +569,7 @@ def download_mods(
             """just so the threadpoolexecutor works well so the async nature works
             basically it takes one mod from the full_modlist and downloads it"""
             download_path = modpack_folderpath / target_mod.get("filename")
-            url = target_mod.get("url")
-            if not url:
+            if not (url := target_mod.get("url")):
                 print(f"{target_mod} has no url!")
                 return
 
@@ -596,7 +607,6 @@ def get_download_summary(download_context: DownloadContext) -> None:
         f"\n[green]{len(download_context.full_modlist)} mods downloaded![/green] ({download_context.dependency_mods_counter} of which were dependencies)"
     )
 
-    # if there were any failed mods, add them to a table
     if len(download_context.failed_mods) > 0:
         failed_mods_table = Table(
             title="Failed Mods", show_header=True, header_style="bold red"
@@ -628,7 +638,9 @@ def main() -> None:
         # threadpoolexecutor to allow multiple thread execution (async pretty much)
         with ThreadPoolExecutor() as executor:
             results = executor.map(
-                lambda mod: get_mods(mod, api_session, download_context),
+                lambda mod: get_mods(
+                    slug_to_id(mod, id_slug_map), api_session, download_context
+                ),
                 initial_modlist,
             )
 
