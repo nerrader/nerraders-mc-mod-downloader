@@ -35,69 +35,6 @@ class DownloadContext:
     dependency_mods_counter: int = field(default=0)
 
 
-def _get_mod_choices(
-    initial_modlist: list[str],
-    current_loader: str,
-    mods_in_category: list[dict[str, Any]],
-) -> list[questionary.Choice]:
-    """
-    NOTE: This function is a helper function for main_menu()
-
-    This gets the appropriate mod choices for the checkbox selection prompt according
-    to the current loader.
-
-    Args:
-        initial_modlist (list[str]): The initial modlist.
-        current_loader (str): The current mod loader the user is using, used to filter out
-        mods that are incompatible with the loader.
-        mods_in_category (list[dict[str, Any]]): The mods that are appropriate to the user's
-        choosing category.
-
-    Returns:
-        list[questionary.Choice]: The list of mods that are able to be chosen.
-    """
-    return [
-        questionary.Choice(
-            title=mod["name"],
-            value=mod["value"],
-            checked=mod["value"] in initial_modlist,
-            disabled=None
-            if current_loader.lower() in mod["loaders"]
-            else f"Requires {mod['loaders']}",
-        )
-        for mod in mods_in_category
-    ]
-
-
-def _handle_category_selection(
-    category_name: str,
-    mods_in_category: list[dict[str, str]],
-    current_config: config.Config,
-    initial_modlist: list[str],
-) -> list[str]:
-    mod_choices = _get_mod_choices(
-        initial_modlist, current_config.mod_loader, mods_in_category
-    )
-
-    selection = questionary.checkbox(
-        message=f"Choose mods from {category_name}",
-        choices=mod_choices,
-        style=const.QUESTIONARY_STYLE,
-    ).ask()
-
-    # for every mod in everything the user has selected so far,
-    # remove every mod that is in the category that the user is in
-    modvalues_in_category: set[str] = {mod["value"] for mod in mods_in_category}
-    initial_modlist = [
-        mod for mod in initial_modlist if mod not in modvalues_in_category
-    ]
-    # then readd it back using this
-    # this is to avoid duplicates and allow for deletion
-    initial_modlist.extend(selection or [])
-
-    return initial_modlist
-
-
 def main_menu(
     current_config: config.Config, json_modlist_data: dict[str, list]
 ) -> tuple[list[str], config.Config]:
@@ -151,12 +88,33 @@ def main_menu(
 
         mods_in_category: list[dict[str, str]] = json_modlist_data[category_map_value]
 
-        initial_modlist = _handle_category_selection(
-            category_choice,
-            mods_in_category,
-            current_config,
-            initial_modlist,
-        )
+        mod_choices = [
+            questionary.Choice(
+                title=mod["name"],
+                value=mod["value"],
+                checked=mod["value"] in initial_modlist,
+                disabled=None
+                if current_config.mod_loader.lower() in mod["loaders"]
+                else f"Requires {mod['loaders']}",
+            )
+            for mod in mods_in_category
+        ]
+
+        selection = questionary.checkbox(
+            message=f"Choose mods from {category_choice}",
+            choices=mod_choices,
+            style=const.QUESTIONARY_STYLE,
+        ).ask()
+
+        # for every mod in everything the user has selected so far,
+        # remove every mod that is in the category that the user is in
+        modvalues_in_category: set[str] = {mod["value"] for mod in mods_in_category}
+        initial_modlist = [
+            mod for mod in initial_modlist if mod not in modvalues_in_category
+        ]
+        # then readd it back using this
+        # this is to avoid duplicates and allow for deletion
+        initial_modlist.extend(selection or [])
 
 
 def slug_to_id(target_slug: str, id_slug_map: dict[str, str]) -> str:
@@ -166,98 +124,13 @@ def slug_to_id(target_slug: str, id_slug_map: dict[str, str]) -> str:
     Returns:
         str: The ID of the slug.
     """
-    id = next(
-        (id for id, slug in id_slug_map.items() if slug == target_slug),
-    )
+    id = next((id for id, slug in id_slug_map.items() if slug == target_slug), None)
     if id is None:
-        print(
-            "yeah so the slug_to_id function mightve broken or there was no id",
-            style="error",
-        )
+        raise ValueError(f"Could not find a mod ID for the slug: {target_slug}")
     return id
 
 
-def _fetch_mod_data(
-    mod_id,
-    download_context: DownloadContext,
-    api_session: requests.Session | None = None,
-) -> list[dict[str, Any]]:
-    """Fetches and returns mod data from the Modrinth API.
-
-    Raises:
-        ValueError: If no files are available for the game version
-        given in the configs.
-    """
-    mod_loader: str = download_context.modpack_config.mod_loader
-    version: str = download_context.modpack_config.version
-
-    api_url = f"https://api.modrinth.com/v2/project/{mod_id}/version"
-    api_params = {
-        "loaders": f'["{mod_loader.lower()}"]',
-        "game_versions": f'["{version}"]',
-        "include_changelog": "false",
-    }
-    api_headers = {"User-Agent": const.USER_AGENT}
-    session = api_session or requests
-    response: requests.Response = session.get(
-        api_url, params=api_params, headers=api_headers, timeout=const.API_TIMEOUT
-    )
-    response.raise_for_status()
-    data = response.json()
-    if len(data) == 0:
-        raise ValueError(f"No files available for {version}")
-    return data
-
-
-def _find_latest_mod_version(
-    mod_api_data: list[dict[str, Any]], valid_version_types: list[str]
-) -> dict[str, Any]:
-    """Finds the latest mod release from the mod_api_data that corresponds
-    with the valid_version_types.
-
-    Raises:
-        ValueError: If there are no valid releases.
-    """
-    valid_mod_versions = [
-        version
-        for version in mod_api_data
-        if version.get("version_type") in valid_version_types
-    ]
-
-    if not valid_mod_versions:
-        raise ValueError(f"Mod does not have any {valid_version_types} releases.")
-    return valid_mod_versions[0]
-
-
-def _find_latest_mod_file_data(latest_version: dict[str, Any]) -> tuple[str, str]:
-    """Finds and returns the mod file data (filename and url) from the
-    data from the latest version.
-
-    Raises:
-        ValueError: If the latest version has no files.
-        ValueError: If the target mod has no filename or URL.
-
-    Returns:
-        tuple[str, str]:
-            - str: The filename of the downloaded mod.
-            - str: The target URL.
-    """
-    if not (files := latest_version.get("files")):
-        raise ValueError("Target mod version contains no files.")
-
-    target_file = next(  # look at files, find the latest one that is a primary file
-        (file for file in files if file.get("primary")),
-        files[0],
-    )
-
-    if not (target_filename := target_file["filename"]) or not (
-        target_url := target_file["url"]
-    ):
-        raise ValueError("Target mod has no filename or download URL")
-    return (target_filename, target_url)
-
-
-def _resolve_dependencies(
+def resolve_dependencies(
     latest_version: dict[str, Any],
     api_session: requests.Session,
     download_context: DownloadContext,
@@ -302,56 +175,75 @@ def get_mods(
     mod_id: str,
     api_session: requests.Session,
     download_context: DownloadContext,
-) -> list[dict[str, str]] | list:
-    """Recursively fetches download metadata for a mod (mod_id) and its required dependencies.
-
-    returns: list[dict[str, str]]: A list of dictionaries, each containing 'slug', 'filename', and 'url'
-        attributes for the target mod and any found dependencies.
-        Returns an empty list if data resolution or network requests fail. (so .extend() doesn't crash)
-    """
-    # initializing variables
+) -> list[dict[str, str]]:
 
     mod_slug = download_context.id_slug_map[mod_id]
-
-    # to prevent race conditions, we need a threading lock
     with const.THREADING_LOCK:
         if not mod_id or mod_id in download_context.visited_mod_ids:
             return []
-
         download_context.visited_mod_ids.add(mod_id)
 
-    # put id in instead for consistency, slugs can change while ids cant
     try:
-        data = _fetch_mod_data(mod_id, download_context, api_session)
-        latest_version = _find_latest_mod_version(
-            data, download_context.modpack_config.valid_versions
+        mod_loader = download_context.modpack_config.mod_loader
+        version = download_context.modpack_config.version
+
+        api_url = f"https://api.modrinth.com/v2/project/{mod_id}/version"
+        api_params = {
+            "loaders": f'["{mod_loader.lower()}"]',
+            "game_versions": f'["{version}"]',
+            "include_changelog": "false",
+        }
+
+        response = api_session.get(
+            api_url,
+            params=api_params,
+            headers={"User-Agent": const.USER_AGENT},
+            timeout=const.API_TIMEOUT,
         )
-        target_filename, target_url = _find_latest_mod_file_data(latest_version)
+        response.raise_for_status()
+        data = response.json()
+
+        if not data:
+            raise ValueError(f"No files available for {version}")
+
+        valid_versions = download_context.modpack_config.valid_versions
+        valid_mod_versions = [
+            version for version in data if version.get("version_type") in valid_versions
+        ]
+
+        if not valid_mod_versions:
+            raise ValueError(f"Mod does not have any {valid_versions} releases.")
+        latest_version = valid_mod_versions[0]
+
+        if not (files := latest_version["files"]):
+            raise ValueError("Target mod version contains no files.")
+
+        target_file = next((file for file in files if file["primary"]), files[0])
+        target_filename = target_file["filename"]
+        target_url = target_file["url"]
+
+        if not target_filename or not target_url:
+            raise ValueError("Target mod has no filename or download URL")
+
     except requests.HTTPError as error:
-        response_code = (
-            error.response.status_code if error.response is not None else "Unknown"
-        )
+        code = error.response.status_code if error.response is not None else "Unknown"
         download_context.failed_mods.append(
-            {"slug": mod_slug, "cause": f"API HTTP Error Status: {response_code}"}
+            {"slug": mod_slug, "cause": f"API HTTP Error Status: {code}"}
         )
         return []
     except ValueError as error:
         download_context.failed_mods.append({"slug": mod_slug, "cause": str(error)})
         return []
 
-    collected_mods: list[dict[str, str]] = []
-    mod_data = {
-        "slug": mod_slug,
-        "filename": target_filename,
-        "url": target_url,  # requests does not support Path objects, therefore the url must be a string.
-    }
-    collected_mods.append(mod_data)
+    collected_mods = [
+        {"slug": mod_slug, "filename": target_filename, "url": target_url}
+    ]
 
-    # dependency search thingy
-    resolved_dependencies = _resolve_dependencies(
+    resolved_dependencies = resolve_dependencies(
         latest_version, api_session, download_context
     )
     collected_mods.extend(resolved_dependencies)
+
     return collected_mods
 
 
@@ -367,7 +259,7 @@ def clear_jar_files(directory_path: Path) -> None:
             print(f"Could not remove {file}: {error}", style="error")
 
 
-def _get_selected_launcher_path() -> tuple[Path, bool]:
+def _get_selected_launcher_path() -> Path | None:
     """
     NOTE: This function is a helper function for _get_download_folder_path()
 
@@ -376,12 +268,9 @@ def _get_selected_launcher_path() -> tuple[Path, bool]:
     custom directory path. Non-Windows systems default immediately to manual input.
 
     Returns:
-        tuple[Path, bool]: A tuple containing:
-            - Path: The absolute path to the targeted launcher or custom directory.
-            - bool: True if the user provided a manual path, False if an automatic
-              path was successfully resolved.
+        Path | None: Path if a launcher directory is found or provided
+        None if the user is forced to provide a manual path.
     """
-    # redefining APPDATA_FILEPATH for this func only
     if const.USER_OS == "win32":
         folderpath_search_locations = {
             "Minecraft Launcher": const.APPDATA_FILEPATH / ".minecraft" / "modpacks",
@@ -397,12 +286,8 @@ def _get_selected_launcher_path() -> tuple[Path, bool]:
             / "instances",
         }
     else:  # sorry but for linux or macos or anything else its not worth the unreliability of the filepaths
-        return (
-            enter_manual_path(
-                "Automatic launcher detection is only available on Windows. Please enter the path to your mods folder manually: "
-            ),
-            True,
-        )
+        return None
+
     launcher_choices: list[str] = [
         location
         for location, folderpath in folderpath_search_locations.items()
@@ -410,12 +295,7 @@ def _get_selected_launcher_path() -> tuple[Path, bool]:
     ]
 
     if not launcher_choices:
-        return (
-            enter_manual_path(
-                "Could not find a modpacks folder location, please manually enter a path where mods will be downloaded:"
-            ),
-            True,
-        )
+        return None
 
     if len(launcher_choices) > 1:
         launcher_choice = questionary.select(
@@ -423,15 +303,12 @@ def _get_selected_launcher_path() -> tuple[Path, bool]:
             choices=launcher_choices + [questionary.Separator(), "Create Manual Path"],
         ).ask()
         if launcher_choice == "Create Manual Path":
-            return (
-                enter_manual_path("Please enter a path where mods will be downloaded:"),
-                True,
-            )
+            return None
     else:
         launcher_choice = launcher_choices[0]
 
     launcher_path = folderpath_search_locations[launcher_choice]
-    return (launcher_path, False)
+    return launcher_path
 
 
 def _get_modpack_folder(launcher_path: Path) -> Path:
@@ -470,27 +347,15 @@ def get_download_folder_path(download_context: DownloadContext) -> Path:
         return download_context.modpack_config.mods_directory
 
     while True:
-        launcher_path, is_manual_path = _get_selected_launcher_path()
-        if is_manual_path:
-            modpack_folderpath = launcher_path
-        else:
-            modpack_folderpath = _get_modpack_folder(launcher_path)
-
-        if not modpack_folderpath:
-            print(
-                "Folder path was empty so we are sending you right back to the selection prompts",
-                style="error",
-            )
-            continue
-        confirm_folderpath = questionary.confirm(
-            f"Is ({modpack_folderpath}) the correct filepath?"
-        ).ask()
-        if confirm_folderpath:
-            break
-    return modpack_folderpath
+        launcher_path = _get_selected_launcher_path()
+        if launcher_path is None:
+            return enter_manual_path()
+        return _get_modpack_folder(launcher_path)
 
 
-def enter_manual_path(prompt: str) -> Path:
+def enter_manual_path(
+    prompt: str = "Please enter a path where mods will be downloaded:",
+) -> Path:
     """This function prompts the user to enter a manual path, usually used if the smart
     directory finding system could not find one.
 
@@ -526,7 +391,16 @@ def download_mods(
     """
     Downloads mods in the modlist by fetching data from the mod's link. Also has progress bars.
     """
-    modpack_folderpath: Path = get_download_folder_path(download_context)
+    while True:
+        modpack_folderpath: Path = get_download_folder_path(download_context)
+        confirm_folderpath = questionary.confirm(
+            f"Is ({modpack_folderpath}) the correct filepath?",
+            style=const.QUESTIONARY_STYLE,
+        ).ask()
+        if confirm_folderpath:
+            break
+        print("Alright, let's try that again then.", style="info")
+        download_context.modpack_config.mods_directory = None
     modpack_folderpath.mkdir(parents=True, exist_ok=True)
 
     should_clear_folders: bool = (
