@@ -29,7 +29,7 @@ class Config:
             configs["version"],
             configs["mod_loader"],
             configs["valid_versions"],
-            configs["mods_directory"] if configs["mods_directory"] else None,
+            Path(configs["mods_directory"]) if configs["mods_directory"] else None,
             BehaviourConfig(**configs["behaviour_settings"]),
         )
 
@@ -69,7 +69,11 @@ class Config:
 
     def save_configs(self) -> None:
         configs = asdict(self)
-        configs["mods_directory"] = str(configs["mods_directory"])
+        configs["mods_directory"] = (
+            str(configs["mods_directory"])
+            if isinstance(configs["mods_directory"], Path)
+            else None
+        )
         storage.write_json(const.CONFIG_FILEPATH, configs)
 
 
