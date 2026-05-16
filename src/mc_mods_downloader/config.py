@@ -130,7 +130,7 @@ def _select_valid_versions(config: Config) -> list[str]:
     return selected_valid_versions
 
 
-def _change_default_path(config: Config) -> Path:
+def _change_default_path(config: Config) -> Path | None:
     print(
         "Note that changing this setting will remove the pathing prompt when downloading",
         style="warning",
@@ -139,12 +139,16 @@ def _change_default_path(config: Config) -> Path:
         "Tip: You can copy and paste the path from the file explorer search bar",
         style="warning",
     )
-    selected_folder_path = questionary.path(
+    selected_folder_path: str = questionary.path(
         "Change Default Mods Path: (press tab)",
-        default=str(config.mods_directory),
+        default=str(config.mods_directory) if config.mods_directory else "",
         style=const.QUESTIONARY_STYLE,
     ).ask()
-    return Path(selected_folder_path)
+    return (
+        Path(selected_folder_path)
+        if not selected_folder_path or selected_folder_path == "None"
+        else None
+    )
 
 
 def _change_behaviour_settings(config: Config) -> None:
