@@ -8,7 +8,7 @@ from mc_mods_downloader import config, constants as const, storage
 print = const.CONSOLE.print
 
 
-def get_mods_json(api_session: requests.Session) -> bool:
+def _get_mods_json(api_session: requests.Session) -> bool:
     """Synchronizes the local mods.json with the remote GitHub repository.
 
     Raises:
@@ -41,7 +41,7 @@ def get_mods_json(api_session: requests.Session) -> bool:
     return True
 
 
-def get_slugslist() -> list[str]:
+def _get_slugslist() -> list[str]:
     """Summary:
     Gets the list of slugs (value) from the mods.json
 
@@ -58,7 +58,7 @@ def get_slugslist() -> list[str]:
     return slugslist
 
 
-def modify_slugsmap(slugslist: list[str], api_session: requests.Session) -> None:
+def _modify_slugsmap(slugslist: list[str], api_session: requests.Session) -> None:
     """
     From the list of slugs given, use the modrinth API to find the IDs for each slug,
     then put it in a dictionary (id: slug), then saves it to idslugmap.json
@@ -77,12 +77,12 @@ def modify_slugsmap(slugslist: list[str], api_session: requests.Session) -> None
     print("Successfully made idslugmap.json")
 
 
-def get_slugsidmap(api_session: requests.Session) -> None:
+def _get_slugsidmap(api_session: requests.Session) -> None:
     """Combines two functions to make a single function which handles the entire slugidmap.json creation"""
-    modify_slugsmap(get_slugslist(), api_session)
+    _modify_slugsmap(_get_slugslist(), api_session)
 
 
-def checkup_files(api_session: requests.Session) -> None:
+def _checkup_files(api_session: requests.Session) -> None:
     """checks up on the config and idslugmap json files, resets them to defaults if somethings wrong
     updates the idslugmap.json if mods.json is updated/changed
 
@@ -103,12 +103,12 @@ def checkup_files(api_session: requests.Session) -> None:
 
     # idslugmap.json checkup, should update or not
     try:
-        should_update_idslugmap = get_mods_json(
+        should_update_idslugmap = _get_mods_json(
             api_session
         )  # returns true if needs to be updated, false otherwise
 
         if should_update_idslugmap or not const.IDSLUGMAP_FILEPATH.exists():
-            get_slugsidmap(api_session)
+            _get_slugsidmap(api_session)
     except requests.exceptions.RequestException as error:
         print(f"Critical Error: {str(error)}", style="error")
         print(
@@ -125,7 +125,7 @@ def main() -> tuple[dict[str, Any], dict[str, Any], config.Config]:
     with requests.Session() as session:
         session.headers.update({"User-Agent": const.USER_AGENT})
         while True:
-            checkup_files(session)
+            _checkup_files(session)
             # loading the file contents for returning
             try:
                 mods = storage.load_json(const.MODS_FILEPATH)
@@ -136,8 +136,8 @@ def main() -> tuple[dict[str, Any], dict[str, Any], config.Config]:
             except Exception as error:
                 print(f"Something happened: {error}, resetting files to defaults")
                 config.Config.get_default_config().save_configs()
-                get_mods_json(session)
-                get_slugsidmap(session)
+                _get_mods_json(session)
+                _get_slugsidmap(session)
 
 
 if __name__ == "__main__":

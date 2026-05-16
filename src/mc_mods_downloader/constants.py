@@ -1,4 +1,3 @@
-# This file is only for storing constants in main.py and builder.py
 from pathlib import Path
 import sys
 from threading import Lock

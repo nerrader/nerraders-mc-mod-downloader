@@ -656,5 +656,4 @@ if __name__ == "__main__":
 # for v4.0.0
 # - make everything async, use asyncio, and replace threadpoolexecutor with that
 # - more mods (if mods are too much ill figure out a way to better find mods and stuff)
-# - refactor main() maybe, get_mods(), and main_menu()
 # - make the detailed_logs config actually work
