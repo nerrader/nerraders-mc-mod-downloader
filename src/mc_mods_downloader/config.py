@@ -155,7 +155,7 @@ def _change_behaviour_settings(config: Config) -> None:
     ).ask()
 
     # helps deal with Ctrl + C cancellation
-    if not selected:
+    if selected is None:
         return
 
     # turns all the config true if selected otherwise false

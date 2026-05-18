@@ -430,37 +430,65 @@ def download_mods(
         DownloadColumn(),
     )
     progress_group = Group(main_progress, mod_download_progress)
+
     with Live(progress_group, refresh_per_second=10):
 
-        def download_one_mod(target_mod) -> None:
+        def download_one_mod(target_mod: dict[str, str]) -> None:
             """Downloads the mod according to it's URL."""
-            download_path = modpack_folderpath / target_mod.get("filename")
-            if not (url := target_mod.get("url")):
-                print(f"{target_mod} has no url!")
-                return
+            try:
+                download_path = modpack_folderpath / target_mod["filename"]
+                if not (url := target_mod.get("url")):
+                    raise ValueError(f"{target_mod} has no url!")
 
-            # requests does not support Path objects, therefore the url must be a string.
-            response = api_session.get(url, stream=True, timeout=const.API_TIMEOUT)
-            response.raise_for_status()
+                # requests does not support Path objects, therefore the url must be a string.
+                response = api_session.get(
+                    url,
+                    stream=True,
+                    timeout=const.API_TIMEOUT,
+                    headers={"User-Agent": const.USER_AGENT},
+                )
+                response.raise_for_status()
 
-            mod_filesize = int(response.headers.get("Content-Length", 0))
-            mod_downloading_progress_id = mod_download_progress.add_task(
-                f"downloading {target_mod.get('slug')}",
-                total=mod_filesize,
-            )
+                mod_filesize = int(response.headers.get("Content-Length", 0))
 
-            # idk what tf this does but it works according to google so
-            with open(download_path, "wb") as file:
-                for chunk in response.iter_content(chunk_size=const.CHUNK_SIZE):
-                    file.write(chunk)
-                    mod_download_progress.update(
-                        mod_downloading_progress_id, advance=len(chunk)
+                with const.THREADING_LOCK:
+                    mod_downloading_progress_id = mod_download_progress.add_task(
+                        f"downloading {target_mod.get('slug')}",
+                        total=mod_filesize,
                     )
-            # updating the progress bars and removing the mod progress bar (mod finished downloading)
-            main_progress.update(mods_downloaded, advance=1)
-            mod_download_progress.remove_task(mod_downloading_progress_id)
 
-        with ThreadPoolExecutor() as executor:
+                # idk what tf this does but it works according to google so
+                with open(download_path, "wb") as file:
+                    for chunk in response.iter_content(chunk_size=const.CHUNK_SIZE):
+                        file.write(chunk)
+                        mod_download_progress.update(
+                            mod_downloading_progress_id, advance=len(chunk)
+                        )
+
+                # updating the progress bars and removing the mod progress bar (mod finished downloading)
+                with const.THREADING_LOCK:
+                    main_progress.update(mods_downloaded, advance=1)
+                    mod_download_progress.remove_task(mod_downloading_progress_id)
+            except requests.HTTPError as error:
+                code = (
+                    error.response.status_code
+                    if error.response is not None
+                    else "Unknown"
+                )
+                download_context.failed_mods.append(
+                    {
+                        "slug": target_mod.get("slug", "Unknown"),
+                        "cause": f"API HTTP Error Status: {code}",
+                    }
+                )
+            except ValueError as error:
+                download_context.failed_mods.append(
+                    {"slug": target_mod.get("slug", "Unknown"), "cause": str(error)}
+                )
+
+        # to not overwhelm the servers, ive capped it at 5
+        # also makes it faster anyway so
+        with ThreadPoolExecutor(max_workers=5) as executor:
             executor.map(download_one_mod, modlist)
 
 
