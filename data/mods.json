@@ -217,17 +217,17 @@
     ],
     "building_mods": [
         {
-            "name": "[DEV] Axiom",
+            "name": "[DEV] [BOTH] Axiom",
             "value": "axiom",
             "loaders": ["fabric"]
         },
         {
-            "name": "Accurate Block Placement",
+            "name": "[!] Accurate Block Placement",
             "value": "accurate-block-placement-reborn",
             "loaders": ["fabric"]
         },
         {
-            "name": "[DEV] Worldedit",
+            "name": "[DEV] [S] Worldedit",
             "value": "worldedit",
             "loaders": ["fabric", "forge", "neoforge"]
         },
@@ -245,6 +245,16 @@
             "name": "[!] Freecam",
             "value": "freecam",
             "loaders": ["fabric", "forge"]
+        },
+        {
+            "name": "[!] [BOTH] Effortless Building",
+            "value": "effortless-building",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "[!] [BOTH] Effortless Structure",
+            "value": "effortless",
+            "loaders": ["fabric", "forge", "neoforge"]
         }
     ],
     "visual_mods": [
@@ -537,6 +547,16 @@
         {
             "name": "Essential Mod",
             "value": "essential",
+            "loaders": ["fabric", "forge", "neoforge"]
+        },
+        {
+            "name": "[S] [MP] AudioPlayer",
+            "value": "audioplayer",
+            "loaders": ["fabric"]
+        },
+        {
+            "name": "[MP] Emotecraft",
+            "value": "emotecraft",
             "loaders": ["fabric", "forge", "neoforge"]
         }
     ],

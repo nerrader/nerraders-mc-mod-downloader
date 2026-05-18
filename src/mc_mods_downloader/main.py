@@ -176,6 +176,9 @@ def get_mods(
     api_session: requests.Session,
     download_context: DownloadContext,
 ) -> list[dict[str, str]]:
+    """Uses the mod_id to fetch all the mod metadata required uisng the Modrinth API
+    for the downloading of the mod later on.
+    """
 
     mod_slug = download_context.id_slug_map[mod_id]
     with const.THREADING_LOCK:

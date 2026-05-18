@@ -98,8 +98,8 @@ def _change_mod_loader(config: Config) -> str:
     print("Note that all Quilt users can use Fabric mods.", style="info")
     selected_mod_loader = questionary.select(
         "Choose your mod loader:",
-        choices=("Fabric", "NeoForge", "Forge"),
-        default=config.mod_loader,
+        choices=("Fabric", "Neoforge", "Forge"),
+        default=config.mod_loader.capitalize(),
         style=const.QUESTIONARY_STYLE,
     ).ask()
     return selected_mod_loader
@@ -145,7 +145,7 @@ def _change_behaviour_settings(config: Config) -> None:
         "Behaviour Settings:",
         choices=[
             questionary.Choice(
-                title=setting.lower().replace("_", " "),
+                title=setting.replace("_", " ").title(),
                 value=setting,
                 checked=getattr(config.behaviour_settings, setting),
             )
