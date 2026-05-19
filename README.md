@@ -27,7 +27,8 @@ I've always spent one to two hours just searching up and downloading those mods 
     This tool safely ignores and filters the mods that are not compatible with your selected mod loader and game version in the settings, the incompatible mods will then be put in a summary at the end of the downloading process for you to see for yourself.
 
 - ### Customizable
-    You can customize settings and how this tool interacts in the main menu
+
+    You can customize settings and how this tool works in the main configuration menu.
 
 # How to Download/Install
 
@@ -41,12 +42,12 @@ I've always spent one to two hours just searching up and downloading those mods 
 1. **Download** the latest .zip folder from the latest [Release](https://github.com/nerrader/nerraders-mc-mod-downloader/releases)
 2. **Extract** the **.zip folder**
 3. Run the .exe file inside that folder
-> [!important]
-> If Windows flags the .exe as unrecognized, click on **More Info > Run Anyway**
->
-> This happens because this tool is new and does not have a paid Certificate. That would cost me $200/year to sign.
->
-> Here's a [VirusTotal scan](https://www.virustotal.com/gui/file/0715d68d44ee76ea12aa96c12561cefab7cdd1c2049f4a718f36cdd5ea1fa974?nocache=1) I did on my own .exe as of v3.1.1
+    > [!important]
+    > If Windows flags the .exe as unrecognized, click on **More Info > Run Anyway**
+    >
+    > This happens because this tool is new and does not have a paid Certificate. That would cost me $200/year to sign.
+    >
+    > Here's a [VirusTotal scan](https://www.virustotal.com/gui/file/0715d68d44ee76ea12aa96c12561cefab7cdd1c2049f4a718f36cdd5ea1fa974?nocache=1) I did on my own .exe as of v3.1.1
     >
     > If you are still curious or still skeptical of the safety of the .exe, feel free to run your own VirusTotal scan, or just check the source code that is available right here on GitHub. Everything's open source.
 4. You're done!
@@ -75,13 +76,13 @@ The only part where it might be slightly confusing is the part where you need to
 >
 > #### Default Settings:
 >
-> |   Setting/Config   | Default Value  |                                                 Description                                                 |
-> | :----------------: | :------------: | :---------------------------------------------------------------------------------------------------------: |
-> |     Mod Loader     |     Fabric     |                           Mods meant for other loaders like Forge will be skipped                           |
-> |    Game Version    | Latest Release |                               Snapshots, alpha and beta versions do not count                               |
-> |   Valid Versions   |    Release     |                       This means that alpha/beta mod versions will not get downloaded                       |
-> |  Auto Clear Jars   |     False      |                               Requires confirmation before clearing all .jars                               |
-> | Show Detailed Logs |     False      | (Planned) Logs more of the tools whereabouts and what its doing that are usually hidden to the average user |
+> | Setting/Config  | Default Value  |                                  Description                                  |
+> | :-------------: | :------------: | :---------------------------------------------------------------------------: |
+> |   Mod Loader    |     Fabric     |            Mods meant for other loaders like Forge will be skipped            |
+> |  Game Version   | Latest Release |                Snapshots, alpha and beta versions do not count                |
+> | Valid Versions  |    Release     |        This means that alpha/beta mod versions will not get downloaded        |
+> | Auto Clear Jars |     False      |                Requires confirmation before clearing all .jars                |
+> |  Verbose Mode   |     False      | Logs more of the tools whereabouts and what its doing that are usually hidden |
 
 ### Mod Tags
 

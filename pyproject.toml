@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mc_mods_downloader"
-dynamic = ["version"]
+version = "1.0.0" # im not maintaining the version number manually, this is just a placeholder
 description = "A tool to help you download minecraft mods quickly and easily"
 readme = "README.md"
 # found using vermin package
