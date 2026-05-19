@@ -105,6 +105,7 @@ def _checkup_files(api_session: requests.Session) -> None:
 
         (technically none of these do, but it does optimize performance)
     """
+    logger.info("Checking up on config and idslugmap json files")
     # idslugmap.json checkup, should update or not
     try:
         should_update_idslugmap = _get_mods_json(api_session)

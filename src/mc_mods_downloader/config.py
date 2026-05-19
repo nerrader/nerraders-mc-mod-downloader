@@ -47,19 +47,12 @@ class Config:
         Uses the Modrinth API to get the latest major minecraft version."""
         logger.info("Generating default config")
 
-        api_url = "https://api.modrinth.com/v2/tag/game_version"
-        requests_session = api_session or requests
-        headers = {"User-Agent": const.USER_AGENT} if not api_session else None
-        data = requests_session.get(
-            api_url, timeout=const.API_TIMEOUT, headers=headers
-        ).json()
-
+        minecraft_versions = get_all_minecraft_versions(api_session)
+        logger.debug(
+            f"Successfully extracted {len(minecraft_versions)} release versions."
+        )
         # pretty much guaranteed to succeed unless bad internet or server crash, so no try except
-        minecraft_versions = [
-            version["version"]
-            for version in data
-            if version["version_type"] == "release"
-        ]
+
         latest_minecraft_version = minecraft_versions[0]
         return cls(
             version=latest_minecraft_version,
@@ -97,19 +90,23 @@ class Config:
         storage.write_json(const.CONFIG_FILEPATH, configs)
 
 
-def _change_minecraft_version(config: Config) -> str:
-    logger.info("Changing Minecraft version")
-
-    original_version = config.version
-
-    api_url: str = "https://api.modrinth.com/v2/tag/game_version"
-    data = requests.get(
-        api_url, timeout=const.API_TIMEOUT, headers={"User-Agent": const.USER_AGENT}
-    ).json()  # pretty much guaranteed to be 200, no try except needed
-
-    minecraft_versions = [
+def get_all_minecraft_versions(
+    api_session: requests.Session | None = None,
+) -> list[str]:
+    api_url = "https://api.modrinth.com/v2/tag/game_version"
+    session = api_session or requests
+    headers = {"User-Agent": const.USER_AGENT} if not api_session else None
+    data = session.get(api_url, timeout=const.API_TIMEOUT, headers=headers).json()
+    return [
         version["version"] for version in data if version["version_type"] == "release"
     ]
+
+
+def _change_minecraft_version(config: Config) -> str:
+    logger.info("Changing Minecraft version")
+    original_version = config.version
+
+    minecraft_versions = get_all_minecraft_versions()
 
     print("Tip: Press Tab to enable autocomplete", style="warning")
     selected_version = questionary.autocomplete(
@@ -196,6 +193,10 @@ def _change_behaviour_settings(config: Config) -> None:
     behaviour_config_names: list[str] = [
         field.name for field in fields(config.behaviour_settings)
     ]
+    print(
+        "NOTE: Verbose Mode will only be turned on the next time you run the program.",
+        style="info",
+    )
     selected = questionary.checkbox(
         "Behaviour Settings:",
         choices=[
@@ -261,6 +262,7 @@ def main_settings_loop(original_config: Config) -> Config:
             case "Exit and Save":
                 logger.info("Saving settings and exiting settings menu.")
                 new_config.save_configs()
+                logger.success("Settings saved successfully.")
                 return new_config
             case "Cancel":
                 logger.info(

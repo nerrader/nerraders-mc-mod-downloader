@@ -8,12 +8,12 @@ if TYPE_CHECKING:
 
 
 def load_json(filepath: Path) -> Any:
-    logger.info(f"Loading json data from file: {filepath}")
+    logger.debug(f"Loading json data from file: {filepath}")
     with open(filepath, encoding="utf-8") as file:
         return json.load(file)
 
 
 def write_json(filepath: Path, data: Any) -> None:
-    logger.info(f"Writing json data to file: {filepath}")
+    logger.debug(f"Writing json data to file: {filepath}")
     with open(filepath, "w", encoding="utf-8") as file:
         json.dump(data, file, indent=4, ensure_ascii=False)

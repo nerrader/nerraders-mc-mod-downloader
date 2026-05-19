@@ -265,10 +265,10 @@ def get_mods(
     collected_mods = [
         {"slug": mod_slug, "filename": target_filename, "url": target_url}
     ]
-
     resolved_dependencies = resolve_dependencies(
         latest_version, api_session, download_context
     )
+
     collected_mods.extend(resolved_dependencies)
 
     return collected_mods
@@ -333,10 +333,14 @@ def _get_selected_launcher_path() -> Path | None:
     if len(launcher_choices) > 1:
         launcher_choice = questionary.select(
             "Which launcher do you want to use to download the mods?",
-            choices=launcher_choices + [questionary.Separator(), "Create Manual Path"],
+            choices=launcher_choices
+            + [questionary.Separator(), "Create Manual Path", "Cancel and Exit"],
         ).ask()
         if launcher_choice == "Create Manual Path":
             return None
+        elif launcher_choice == "Cancel and Exit":
+            logger.info("User chose to cancel and exit.")
+            sysexit(0)
     else:
         launcher_choice = launcher_choices[0]
 
@@ -366,7 +370,12 @@ def _get_modpack_folder(launcher_path: Path) -> Path:
     modpack_choice = questionary.select(
         "Which modpack do you want your mods to be downloaded in?",
         choices=directories
-        + [questionary.Separator(), "Create New Modpack Folder", "Enter Manual Path"],
+        + [
+            questionary.Separator(),
+            "Create New Modpack Folder",
+            "Enter Manual Path",
+            "Cancel and Exit",
+        ],
         style=const.QUESTIONARY_STYLE,
     ).ask()
 
@@ -378,6 +387,10 @@ def _get_modpack_folder(launcher_path: Path) -> Path:
 
     elif modpack_choice == "Enter Manual Path":
         return enter_manual_path("Please enter the path for the new modpack folder:")
+
+    elif modpack_choice == "Cancel and Exit":
+        logger.info("User chose to cancel and exit.")
+        sysexit(0)
 
     return launcher_path / modpack_choice / "mods"
 
@@ -579,7 +592,6 @@ def get_download_summary(download_context: DownloadContext) -> None:
 
 
 def setup_logger(config: config.Config) -> None:
-    logger.remove()
     logger.add(
         const.MAIN_DATA_FILEPATH / "app.log",
         level="DEBUG",
@@ -588,10 +600,11 @@ def setup_logger(config: config.Config) -> None:
     )
     if config.behaviour_settings.verbose_mode:
         logger.add(stderr, level="DEBUG")
-        logger.debug("Verbose mode enabled, now logging to console.")
+        logger.info("Verbose mode enabled, now logging to console.")
 
 
 def main() -> None:
+    logger.remove()
     # getting the json files
     configs = config.Config.get_or_create_config()
     setup_logger(configs)
